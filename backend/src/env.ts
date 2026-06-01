@@ -1,5 +1,14 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
+
+// Charge le .env de façon fiable quel que soit le cwd : d'abord la racine du
+// monorepo, puis un éventuel .env propre au backend (sans écraser les variables
+// déjà définies — utile en Docker où tout vient de l'environnement).
+const here = path.dirname(fileURLToPath(import.meta.url)); // backend/src (dev) ou backend/dist (prod)
+dotenv.config({ path: path.resolve(here, '../../.env') }); // racine du monorepo
+dotenv.config({ path: path.resolve(here, '../.env') }); // backend/.env (optionnel)
 
 /** Validation stricte de l'environnement au démarrage (fail-fast). */
 const boolish = (def: boolean) =>
