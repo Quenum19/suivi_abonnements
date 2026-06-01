@@ -13,18 +13,22 @@ import { prisma } from '../src/db.js';
 import { runReminders } from '../src/services/reminders.js';
 
 const ASOF = new Date('2026-06-01T08:00:00Z');
+let orgId = '';
 
 async function seed() {
   await prisma.reminderSent.deleteMany({});
   await prisma.subscription.deleteMany({});
+  await prisma.organization.deleteMany({});
+  const org = await prisma.organization.create({ data: { name: 'Test Org' } });
+  orgId = org.id;
   await prisma.subscription.createMany({
     data: [
       // dans 5 j → déclenche les seuils 30 et 7 (pas 1)
-      { name: 'Bientôt', category: 'Test', expiryDate: new Date('2026-06-06T00:00:00Z') },
+      { organizationId: orgId, name: 'Bientôt', category: 'Test', expiryDate: new Date('2026-06-06T00:00:00Z') },
       // dans 90 j → aucun seuil
-      { name: 'Loin', category: 'Test', expiryDate: new Date('2026-08-30T00:00:00Z') },
+      { organizationId: orgId, name: 'Loin', category: 'Test', expiryDate: new Date('2026-08-30T00:00:00Z') },
       // dépassé → ignoré
-      { name: 'Expiré', category: 'Test', expiryDate: new Date('2026-05-01T00:00:00Z') },
+      { organizationId: orgId, name: 'Expiré', category: 'Test', expiryDate: new Date('2026-05-01T00:00:00Z') },
     ],
   });
 }
@@ -40,7 +44,7 @@ afterAll(async () => {
 
 describe('runReminders', () => {
   it('déclenche un rappel par seuil franchi, ignore le futur lointain et le passé', async () => {
-    const r = await runReminders({ asOf: ASOF });
+    const r = await runReminders({ asOf: ASOF, organizationId: orgId });
     // « Bientôt » (5 j) franchit les seuils 30 et 7 → 2 envois.
     expect(r.sent).toHaveLength(2);
     expect(sent.map((s) => s.name)).toEqual(['Bientôt', 'Bientôt']);
@@ -49,9 +53,9 @@ describe('runReminders', () => {
   });
 
   it('est idempotent : un 2ᵉ run n’envoie rien de plus (contrainte UNIQUE)', async () => {
-    await runReminders({ asOf: ASOF });
+    await runReminders({ asOf: ASOF, organizationId: orgId });
     sent.length = 0;
-    const r2 = await runReminders({ asOf: ASOF });
+    const r2 = await runReminders({ asOf: ASOF, organizationId: orgId });
     expect(r2.sent).toHaveLength(0);
     expect(r2.skipped).toBe(2);
     expect(sent).toHaveLength(0);
@@ -61,7 +65,7 @@ describe('runReminders', () => {
   });
 
   it('dryRun ne persiste ni n’envoie', async () => {
-    const r = await runReminders({ asOf: ASOF, dryRun: true });
+    const r = await runReminders({ asOf: ASOF, dryRun: true, organizationId: orgId });
     expect(r.sent).toHaveLength(2);
     expect(sent).toHaveLength(0);
     expect(await prisma.reminderSent.count()).toBe(0);

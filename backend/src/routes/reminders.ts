@@ -28,7 +28,7 @@ remindersRouter.post(
   '/run',
   asyncHandler(async (req, res) => {
     const { asOf, dryRun } = runRemindersSchema.parse(req.body ?? {});
-    const result = await runReminders({ asOf, dryRun });
+    const result = await runReminders({ asOf, dryRun, organizationId: req.auth!.organizationId });
     res.json({ data: result });
   }),
 );
@@ -39,6 +39,7 @@ remindersRouter.get(
   asyncHandler(async (req, res) => {
     const limit = Math.min(Math.max(Number(req.query.limit ?? 100), 1), 500);
     const rows = await prisma.reminderSent.findMany({
+      where: { organizationId: req.auth!.organizationId },
       orderBy: { sentAt: 'desc' },
       take: limit,
       include: { subscription: { select: { name: true, category: true } } },

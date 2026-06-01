@@ -38,6 +38,12 @@ export interface SubscriptionInput {
   responsible: string | null;
 }
 
+export interface Session {
+  user: { id: string; email: string; name: string | null };
+  organization: { id: string; name: string; plan: 'free' | 'pro' | 'team'; calendarToken: string };
+  role: string;
+}
+
 export interface Insights {
   counts: { total: number; active: number; unused: number; cancelled: number };
   totalsByCurrency: Record<string, { monthly: number; yearly: number; count: number }>;

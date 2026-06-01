@@ -2,6 +2,7 @@ import express, { type Express } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import cookieParser from 'cookie-parser';
 import morgan from 'morgan';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -14,6 +15,7 @@ import { remindersRouter } from './routes/reminders.js';
 import { dataioRouter } from './routes/dataio.js';
 import { calendarRouter } from './routes/calendar.js';
 import { insightsRouter } from './routes/insights.js';
+import { authRouter } from './routes/auth.js';
 
 export function createApp(): Express {
   const app = express();
@@ -21,7 +23,8 @@ export function createApp(): Express {
   // CSP désactivée : le SPA charge Google Fonts + styles inline. Les autres
   // en-têtes de sécurité de helmet restent actifs.
   app.use(helmet({ contentSecurityPolicy: false }));
-  app.use(cors());
+  app.use(cors({ credentials: true, origin: true }));
+  app.use(cookieParser());
   app.use(express.json({ limit: '2mb' }));
   app.use(express.text({ type: 'text/csv', limit: '2mb' }));
   if (env.NODE_ENV !== 'test') app.use(morgan('dev'));
@@ -43,15 +46,13 @@ export function createApp(): Express {
   // Santé (publique)
   app.get('/api/health', (_req, res) => res.json({ status: 'ok', time: new Date().toISOString() }));
 
-  // Flux calendrier ICS — public (les clients d'agenda n'envoient pas d'en-tête).
-  app.use('/api', calendarRouter);
+  // Authentification (public)
+  app.use('/api/auth', authRouter);
 
-  // Indique au frontend si un mot de passe est requis (sans le révéler).
-  app.get('/api/auth/status', (_req, res) =>
-    res.json({ data: { authRequired: Boolean(env.APP_PASSWORD) } }),
-  );
+  // Flux calendrier ICS — public via jeton d'organisation (/api/calendar/:token.ics).
+  app.use('/api/calendar', calendarRouter);
 
-  // Routes protégées
+  // Routes protégées (scopées à l'organisation de la session)
   app.use('/api/subscriptions', requireAuth, subscriptionsRouter);
   app.use('/api/reminders', requireAuth, remindersRouter);
   app.use('/api/insights', requireAuth, insightsRouter);

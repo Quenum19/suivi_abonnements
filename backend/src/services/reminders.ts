@@ -6,6 +6,7 @@ import { enabledChannels, notify, type Channel, type ReminderPayload } from './n
 export interface RunOptions {
   asOf?: Date;
   dryRun?: boolean;
+  organizationId?: string; // si fourni : ne traite que cette organisation
 }
 
 export interface SentEntry {
@@ -67,7 +68,10 @@ export async function runReminders(opts: RunOptions = {}): Promise<RunResult> {
   upper.setHours(23, 59, 59, 999);
 
   const subs = await prisma.subscription.findMany({
-    where: { expiryDate: { gte: today, lte: upper } },
+    where: {
+      expiryDate: { gte: today, lte: upper },
+      ...(opts.organizationId ? { organizationId: opts.organizationId } : {}),
+    },
     orderBy: { expiryDate: 'asc' },
   });
   result.considered = subs.length;
@@ -117,7 +121,12 @@ export async function runReminders(opts: RunOptions = {}): Promise<RunResult> {
         let claimed: { id: string } | null = null;
         try {
           claimed = await prisma.reminderSent.create({
-            data: { subscriptionId: sub.id, thresholdDays: threshold, channel },
+            data: {
+              subscriptionId: sub.id,
+              organizationId: sub.organizationId,
+              thresholdDays: threshold,
+              channel,
+            },
             select: { id: true },
           });
         } catch (e: unknown) {

@@ -5,20 +5,27 @@ import { buildIcs } from '../lib/ics.js';
 export const calendarRouter = Router();
 
 /**
- * AMÉLIORATION — GET /api/calendar.ics
- * Flux iCalendar de toutes les échéances. À ouvrir directement ou à utiliser
- * comme URL d'abonnement dans Google Agenda / Apple Calendar / Outlook.
- *
- * Note : volontairement NON protégé par mot de passe, car les clients
- * d'agenda n'envoient pas d'en-tête custom. L'URL fait office de jeton ;
- * ne pas la partager. (Monté en dehors du middleware d'auth, cf. app.ts.)
+ * AMÉLIORATION — GET /api/calendar/:token.ics
+ * Flux iCalendar des échéances d'UNE organisation, identifiée par son jeton
+ * secret (calendarToken). Public (les clients d'agenda n'envoient pas d'en-tête
+ * d'auth) mais opaque : l'URL fait office de clé, ne pas la partager.
  */
-calendarRouter.get('/calendar.ics', async (req, res, next) => {
+calendarRouter.get('/:token.ics', async (req, res, next) => {
   try {
+    const token = req.params.token;
+    const org = await prisma.organization.findUnique({ where: { calendarToken: token } });
+    if (!org) {
+      res.status(404).type('text/plain').send('Calendrier introuvable.');
+      return;
+    }
+
     const before = Number.parseInt(String(req.query.before ?? '7'), 10);
     const reminderDaysBefore = Number.isFinite(before) && before >= 0 ? before : 7;
 
-    const subs = await prisma.subscription.findMany({ orderBy: { expiryDate: 'asc' } });
+    const subs = await prisma.subscription.findMany({
+      where: { organizationId: org.id },
+      orderBy: { expiryDate: 'asc' },
+    });
     const ics = buildIcs(
       subs.map((s) => ({
         id: s.id,

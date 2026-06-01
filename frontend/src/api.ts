@@ -2,21 +2,12 @@ import type {
   Insights,
   ReminderConfig,
   ReminderHistoryEntry,
+  Session,
   Subscription,
   SubscriptionInput,
 } from './types';
 
 const BASE = (import.meta.env.VITE_API_BASE ?? '').replace(/\/$/, '');
-
-/** Mot de passe applicatif mémorisé en session (envoyé en en-tête). */
-let appPassword = sessionStorage.getItem('appPassword') ?? '';
-export function setAppPassword(pw: string) {
-  appPassword = pw;
-  sessionStorage.setItem('appPassword', pw);
-}
-export function getAppPassword() {
-  return appPassword;
-}
 
 export class ApiError extends Error {
   constructor(
@@ -33,9 +24,11 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     'Content-Type': 'application/json',
     ...(init.headers as Record<string, string>),
   };
-  if (appPassword) headers['x-app-password'] = appPassword;
-
-  const res = await fetch(`${BASE}/api${path}`, { ...init, headers });
+  const res = await fetch(`${BASE}/api${path}`, {
+    ...init,
+    headers,
+    credentials: 'include', // envoie/reçoit le cookie de session httpOnly
+  });
   if (res.status === 204) return undefined as T;
 
   const text = await res.text();
@@ -47,8 +40,15 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 }
 
 export const api = {
-  authStatus: () => request<{ authRequired: boolean }>('/auth/status'),
+  // ── Auth ──
+  register: (input: { email: string; password: string; organizationName?: string; name?: string }) =>
+    request<Session>('/auth/register', { method: 'POST', body: JSON.stringify(input) }),
+  login: (input: { email: string; password: string }) =>
+    request<Session>('/auth/login', { method: 'POST', body: JSON.stringify(input) }),
+  logout: () => request<{ ok: boolean }>('/auth/logout', { method: 'POST' }),
+  me: () => request<Session>('/auth/me'),
 
+  // ── Abonnements ──
   list: (params?: { search?: string; category?: string }) => {
     const q = new URLSearchParams();
     if (params?.search) q.set('search', params.search);
@@ -81,5 +81,5 @@ export const api = {
     }),
 
   exportUrl: (format: 'json' | 'csv') => `${BASE}/api/export?format=${format}`,
-  calendarUrl: () => `${BASE}/api/calendar.ics`,
+  calendarUrl: (token: string) => `${BASE}/api/calendar/${token}.ics`,
 };

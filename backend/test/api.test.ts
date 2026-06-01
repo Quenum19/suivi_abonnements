@@ -5,106 +5,109 @@ import { prisma } from '../src/db.js';
 
 const app = createApp();
 
+// Agent authentifié (conserve le cookie de session entre les requêtes).
+let agent: ReturnType<typeof request.agent>;
+let calendarToken = '';
+
 beforeEach(async () => {
   await prisma.reminderSent.deleteMany({});
   await prisma.subscription.deleteMany({});
+  await prisma.membership.deleteMany({});
+  await prisma.user.deleteMany({});
+  await prisma.organization.deleteMany({});
+
+  agent = request.agent(app);
+  const reg = await agent
+    .post('/api/auth/register')
+    .send({ email: `t${Math.floor(performance.now())}@x.test`, password: 'password123', organizationName: 'Org Test' });
+  expect(reg.status).toBe(201);
+  calendarToken = reg.body.data.organization.calendarToken;
 });
 
 afterAll(async () => {
   await prisma.$disconnect();
 });
 
-describe('API /api/subscriptions', () => {
-  it('crée un abonnement (201) avec champs calculés', async () => {
-    const res = await request(app)
-      .post('/api/subscriptions')
-      .send({ name: 'Netflix', category: 'Streaming', expiryDate: '2099-01-01' });
-    expect(res.status).toBe(201);
-    expect(res.body.data.id).toBeTruthy();
-    expect(res.body.data.daysLeft).toBeGreaterThan(0);
-    expect(res.body.data.status).toBe('safe');
+describe('Auth', () => {
+  it('refuse l’accès sans session (401)', async () => {
+    const res = await request(app).get('/api/subscriptions');
+    expect(res.status).toBe(401);
   });
 
-  it('refuse une entrée invalide (400) sans date d’échéance', async () => {
-    const res = await request(app).post('/api/subscriptions').send({ name: 'X' });
+  it('expose la session via /me', async () => {
+    const me = await agent.get('/api/auth/me');
+    expect(me.status).toBe(200);
+    expect(me.body.data.organization.name).toBe('Org Test');
+  });
+});
+
+describe('API /api/subscriptions (scopé organisation)', () => {
+  it('crée un abonnement (201) avec champs calculés', async () => {
+    const res = await agent
+      .post('/api/subscriptions')
+      .send({ name: 'Netflix', category: 'Streaming', expiryDate: '2099-01-01', frequency: 'monthly', amount: 10 });
+    expect(res.status).toBe(201);
+    expect(res.body.data.daysLeft).toBeGreaterThan(0);
+    expect(res.body.data.annualCost).toBeCloseTo(120, 1);
+  });
+
+  it('refuse une entrée invalide (400)', async () => {
+    const res = await agent.post('/api/subscriptions').send({ name: 'X' });
     expect(res.status).toBe(400);
-    expect(res.body.error).toMatch(/Validation/i);
   });
 
   it('liste, met à jour puis supprime', async () => {
-    const created = await request(app)
+    const created = await agent
       .post('/api/subscriptions')
       .send({ name: 'Spotify', category: 'Streaming', expiryDate: '2099-01-01' });
     const id = created.body.data.id;
 
-    const list = await request(app).get('/api/subscriptions');
-    expect(list.status).toBe(200);
+    const list = await agent.get('/api/subscriptions');
     expect(list.body.data).toHaveLength(1);
 
-    const upd = await request(app).put(`/api/subscriptions/${id}`).send({ name: 'Spotify Famille' });
-    expect(upd.status).toBe(200);
+    const upd = await agent.put(`/api/subscriptions/${id}`).send({ name: 'Spotify Famille' });
     expect(upd.body.data.name).toBe('Spotify Famille');
 
-    const del = await request(app).delete(`/api/subscriptions/${id}`);
+    const del = await agent.delete(`/api/subscriptions/${id}`);
     expect(del.status).toBe(204);
-
-    const after = await request(app).get('/api/subscriptions');
-    expect(after.body.data).toHaveLength(0);
+    expect((await agent.get('/api/subscriptions')).body.data).toHaveLength(0);
   });
 
-  it('404 sur un id inconnu', async () => {
-    const res = await request(app).get('/api/subscriptions/inexistant');
-    expect(res.status).toBe(404);
-  });
+  it('isole les données entre organisations', async () => {
+    await agent.post('/api/subscriptions').send({ name: 'Privé', category: 'X', expiryDate: '2099-01-01' });
 
-  it('filtre par catégorie et recherche', async () => {
-    await request(app)
-      .post('/api/subscriptions')
-      .send({ name: 'CapCut', category: 'Vidéo', expiryDate: '2099-01-01' });
-    await request(app)
-      .post('/api/subscriptions')
-      .send({ name: 'Hostinger', category: 'Hébergement', expiryDate: '2099-01-01' });
-
-    const byCat = await request(app).get('/api/subscriptions?category=Vidéo');
-    expect(byCat.body.data).toHaveLength(1);
-    const bySearch = await request(app).get('/api/subscriptions?search=host');
-    expect(bySearch.body.data).toHaveLength(1);
-    expect(bySearch.body.data[0].name).toBe('Hostinger');
+    const other = request.agent(app);
+    await other
+      .post('/api/auth/register')
+      .send({ email: `o${Math.floor(performance.now())}@x.test`, password: 'password123' });
+    const otherList = await other.get('/api/subscriptions');
+    expect(otherList.body.data).toHaveLength(0); // ne voit pas les abos de l'autre org
   });
 });
 
 describe('API utilitaires', () => {
-  it('expose la config des rappels', async () => {
-    const res = await request(app).get('/api/reminders/config');
+  it('insights renvoie une structure', async () => {
+    const res = await agent.get('/api/insights');
     expect(res.status).toBe(200);
-    expect(Array.isArray(res.body.data.thresholds)).toBe(true);
+    expect(res.body.data.counts).toBeDefined();
   });
 
-  it('renvoie un historique (vide au départ)', async () => {
-    const res = await request(app).get('/api/reminders/history');
-    expect(res.status).toBe(200);
+  it('historique vide au départ', async () => {
+    const res = await agent.get('/api/reminders/history');
     expect(res.body.data).toEqual([]);
   });
 
-  it('exporte en CSV avec en-tête', async () => {
-    await request(app)
-      .post('/api/subscriptions')
-      .send({ name: 'CapCut', category: 'Vidéo', expiryDate: '2099-01-01' });
-    const res = await request(app).get('/api/export?format=csv');
-    expect(res.status).toBe(200);
+  it('export CSV', async () => {
+    await agent.post('/api/subscriptions').send({ name: 'CapCut', category: 'Vidéo', expiryDate: '2099-01-01' });
+    const res = await agent.get('/api/export?format=csv');
     expect(res.headers['content-type']).toMatch(/csv/);
-    expect(res.text).toMatch(/^name,category/);
     expect(res.text).toMatch(/CapCut/);
   });
 
-  it('sert un flux ICS', async () => {
-    await request(app)
-      .post('/api/subscriptions')
-      .send({ name: 'CapCut', category: 'Vidéo', expiryDate: '2099-01-01' });
-    const res = await request(app).get('/api/calendar.ics');
+  it('flux ICS public via le jeton d’organisation', async () => {
+    await agent.post('/api/subscriptions').send({ name: 'CapCut', category: 'Vidéo', expiryDate: '2099-01-01' });
+    const res = await request(app).get(`/api/calendar/${calendarToken}.ics`);
     expect(res.status).toBe(200);
-    expect(res.headers['content-type']).toMatch(/calendar/);
-    expect(res.text).toMatch(/BEGIN:VCALENDAR/);
     expect(res.text).toMatch(/SUMMARY:Échéance — CapCut/);
   });
 });

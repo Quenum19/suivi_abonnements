@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { ReminderConfig, Subscription, SubscriptionInput } from './types';
-import { ApiError, api, getAppPassword, setAppPassword } from './api';
+import type { ReminderConfig, Session, Subscription, SubscriptionInput } from './types';
+import { api } from './api';
+import { AuthScreen } from './components/AuthScreen';
 import { SummaryBar } from './components/SummaryBar';
 import { SubscriptionCard } from './components/SubscriptionCard';
 import { SubscriptionModal } from './components/SubscriptionModal';
@@ -8,6 +9,9 @@ import { HistoryDrawer } from './components/HistoryDrawer';
 import { InsightsDrawer } from './components/InsightsDrawer';
 
 export default function App() {
+  const [session, setSession] = useState<Session | null>(null);
+  const [authReady, setAuthReady] = useState(false);
+
   const [subs, setSubs] = useState<Subscription[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -20,7 +24,6 @@ export default function App() {
   const [editing, setEditing] = useState<Subscription | null>(null);
 
   const [config, setConfig] = useState<ReminderConfig | null>(null);
-  const [authRequired, setAuthRequired] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [insightsOpen, setInsightsOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -37,34 +40,39 @@ export default function App() {
       const data = await api.list();
       setSubs(data);
     } catch (e) {
-      if (e instanceof ApiError && e.status === 401) {
-        setAuthRequired(true);
-        promptPassword();
-      } else {
-        setError(e instanceof Error ? e.message : 'Erreur de chargement.');
-      }
+      setError(e instanceof Error ? e.message : 'Erreur de chargement.');
     } finally {
       setLoading(false);
     }
-    // promptPassword est stable (ne dépend que de fonctions stables).
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Vérifie la session au démarrage.
   useEffect(() => {
     api
-      .authStatus()
-      .then((s) => setAuthRequired(s.authRequired))
-      .catch(() => undefined);
+      .me()
+      .then(setSession)
+      .catch(() => setSession(null))
+      .finally(() => setAuthReady(true));
+  }, []);
+
+  // Charge les données une fois connecté.
+  useEffect(() => {
+    if (!session) return;
     api.reminderConfig().then(setConfig).catch(() => undefined);
     load();
-  }, [load]);
+  }, [session, load]);
 
-  function promptPassword() {
-    const pw = window.prompt('Mot de passe applicatif requis :', getAppPassword());
-    if (pw != null) {
-      setAppPassword(pw);
-      load();
-    }
+  async function handleLogout() {
+    await api.logout().catch(() => undefined);
+    setSession(null);
+    setSubs([]);
+  }
+
+  if (!authReady) {
+    return <div className="flex min-h-screen items-center justify-center text-muted">Chargement…</div>;
+  }
+  if (!session) {
+    return <AuthScreen onAuth={setSession} />;
   }
 
   // Filtrage client (la recherche serveur existe aussi ; ici instantané).
@@ -158,15 +166,30 @@ export default function App() {
             Suivi des dates de renouvellement de tes comptes
           </div>
         </div>
-        <button
-          onClick={() => {
-            setEditing(null);
-            setModalOpen(true);
-          }}
-          className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl bg-brand px-[18px] py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:brightness-110"
-        >
-          ＋ Ajouter un abonnement
-        </button>
+        <div className="flex items-center gap-2">
+          <div className="hidden text-right sm:block">
+            <div className="text-sm font-semibold">{session.organization.name}</div>
+            <div className="text-[11px] uppercase tracking-wide text-muted">
+              plan {session.organization.plan}
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              setEditing(null);
+              setModalOpen(true);
+            }}
+            className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl bg-brand px-[18px] py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:brightness-110"
+          >
+            ＋ Ajouter
+          </button>
+          <button
+            onClick={handleLogout}
+            title="Se déconnecter"
+            className="rounded-xl border border-line bg-card px-3 py-3 text-sm text-muted transition hover:border-muted hover:text-ink"
+          >
+            ⎋
+          </button>
+        </div>
       </header>
 
       {/* Barre d'outils */}
@@ -192,7 +215,7 @@ export default function App() {
         <ToolbarButton onClick={() => setInsightsOpen(true)}>💡 Économies</ToolbarButton>
         <ToolbarButton onClick={handleRunReminders}>🔔 Vérifier rappels</ToolbarButton>
         <ToolbarButton onClick={() => setHistoryOpen(true)}>🕘 Historique</ToolbarButton>
-        <a href={api.calendarUrl()} target="_blank" rel="noreferrer">
+        <a href={api.calendarUrl(session.organization.calendarToken)} target="_blank" rel="noreferrer">
           <ToolbarButton>📅 Calendrier (.ics)</ToolbarButton>
         </a>
         <a href={api.exportUrl('json')}>
@@ -203,7 +226,6 @@ export default function App() {
         </a>
         <ToolbarButton onClick={() => fileRef.current?.click()}>⬆ Importer</ToolbarButton>
         <input ref={fileRef} type="file" accept=".json,application/json" hidden onChange={handleImport} />
-        {authRequired && <ToolbarButton onClick={promptPassword}>🔑</ToolbarButton>}
       </div>
 
       {config && (

@@ -13,7 +13,10 @@ dataioRouter.get(
   '/export',
   asyncHandler(async (req, res) => {
     const format = (req.query.format as string) === 'csv' ? 'csv' : 'json';
-    const subs = await prisma.subscription.findMany({ orderBy: { category: 'asc' } });
+    const subs = await prisma.subscription.findMany({
+      where: { organizationId: req.auth!.organizationId },
+      orderBy: { category: 'asc' },
+    });
     const rows = subs.map((s) => ({
       name: s.name,
       category: s.category,
@@ -41,7 +44,7 @@ dataioRouter.post(
   '/import',
   asyncHandler(async (req, res) => {
     const { items, replace } = importSchema.parse(req.body);
-    const count = await importItems(items, replace);
+    const count = await importItems(req.auth!.organizationId, items, replace);
     res.json({ data: { imported: count, replaced: replace } });
   }),
 );
@@ -75,20 +78,21 @@ dataioRouter.post(
         throw new HttpError(400, `Ligne CSV ${i + 2} invalide (colonnes: ${CSV_COLUMNS.join(', ')}).`);
       }
     });
-    const count = await importItems(items, replace);
+    const count = await importItems(req.auth!.organizationId, items, replace);
     res.json({ data: { imported: count, replaced: replace } });
   }),
 );
 
 async function importItems(
+  organizationId: string,
   items: { expiryDate: Date; [k: string]: unknown }[],
   replace: boolean,
 ): Promise<number> {
   return prisma.$transaction(async (tx) => {
-    if (replace) await tx.subscription.deleteMany({});
+    if (replace) await tx.subscription.deleteMany({ where: { organizationId } });
     let n = 0;
     for (const it of items) {
-      await tx.subscription.create({ data: it as never });
+      await tx.subscription.create({ data: { ...it, organizationId } as never });
       n++;
     }
     return n;

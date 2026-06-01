@@ -8,8 +8,10 @@ export const insightsRouter = Router();
 // GET /api/insights — couche « Économies » (totaux, doublons, inutilisés, à couper).
 insightsRouter.get(
   '/',
-  asyncHandler(async (_req, res) => {
-    const subs = await prisma.subscription.findMany();
+  asyncHandler(async (req, res) => {
+    const subs = await prisma.subscription.findMany({
+      where: { organizationId: req.auth!.organizationId },
+    });
     res.json({ data: computeInsights(subs) });
   }),
 );

@@ -24,6 +24,10 @@ const EnvSchema = z.object({
   DATABASE_URL: z.string().min(1).default('file:./prisma/dev.db'),
 
   APP_PASSWORD: z.string().optional().default(''),
+  // Secret de signature des JWT de session. EN PROD : valeur longue et aléatoire.
+  JWT_SECRET: z.string().optional().default('dev-insecure-secret-change-me'),
+  // true derrière HTTPS (cookie Secure). false en dev local (http).
+  COOKIE_SECURE: boolish(false),
 
   REMINDER_THRESHOLDS: z
     .string()

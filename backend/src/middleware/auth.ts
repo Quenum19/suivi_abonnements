@@ -1,13 +1,31 @@
 import type { NextFunction, Request, Response } from 'express';
-import { env } from '../env.js';
+import { cookie, verifySession, type SessionClaims } from '../lib/auth.js';
 
-/**
- * Auth MVP mono-utilisateur : si APP_PASSWORD est défini, chaque requête /api
- * doit présenter l'en-tête `x-app-password`. Vide = auth désactivée (dev).
- */
+declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
+  namespace Express {
+    interface Request {
+      auth?: SessionClaims;
+    }
+  }
+}
+
+/** Lit le JWT (cookie httpOnly ou en-tête Bearer) et renseigne req.auth. */
+function readClaims(req: Request): SessionClaims | null {
+  const fromCookie = req.cookies?.[cookie.name];
+  const header = req.header('authorization');
+  const fromHeader = header?.startsWith('Bearer ') ? header.slice(7) : undefined;
+  const token = fromCookie || fromHeader;
+  return token ? verifySession(token) : null;
+}
+
+/** Exige une session valide ; sinon 401. Scope multi-tenant via req.auth.organizationId. */
 export function requireAuth(req: Request, res: Response, next: NextFunction): void {
-  if (!env.APP_PASSWORD) return next();
-  const provided = req.header('x-app-password');
-  if (provided && provided === env.APP_PASSWORD) return next();
-  res.status(401).json({ error: 'Non autorisé : mot de passe applicatif manquant ou invalide.' });
+  const claims = readClaims(req);
+  if (!claims) {
+    res.status(401).json({ error: 'Non authentifié.' });
+    return;
+  }
+  req.auth = claims;
+  next();
 }

@@ -11,10 +11,57 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  memberships Membership[]
+
+  @@map("users")
+}
+
+model Organization {
+  id            String   @id @default(cuid())
+  name          String
+  // Plan de facturation : free | pro | team
+  plan          String   @default("free")
+  // Jeton secret pour l'URL d'abonnement au calendrier ICS (public mais opaque).
+  calendarToken String   @unique @default(cuid())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  memberships   Membership[]
+  subscriptions Subscription[]
+  reminders     ReminderSent[]
+
+  @@map("organizations")
+}
+
+model Membership {
+  id             String   @id @default(cuid())
+  userId         String
+  organizationId String
+  // Rôle : owner | admin | member
+  role           String   @default("owner")
+  createdAt      DateTime @default(now())
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@index([organizationId])
+  @@map("memberships")
+}
+
 model Subscription {
-  id         String   @id @default(cuid())
-  name       String
-  category   String   @default("Autres")
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  category       String   @default("Autres")
   startDate  DateTime?
   expiryDate DateTime
   amount     Float?
@@ -29,28 +76,33 @@ model Subscription {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  reminders ReminderSent[]
+  organization Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  reminders    ReminderSent[]
 
   // OPTIMISATION : index sur la date d'échéance — le planificateur quotidien
   // filtre/trie par expiryDate, l'index évite un scan complet de la table.
   @@index([expiryDate])
+  @@index([organizationId])
   @@index([category])
   @@map("subscriptions")
 }
 
 model ReminderSent {
   id             String   @id @default(cuid())
+  organizationId String
   subscriptionId String
   thresholdDays  Int
   channel        String // "email" | "n8n"
   sentAt         DateTime @default(now())
 
   subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   // OPTIMISATION : l'idempotence est garantie au niveau de la base.
   // Un même (abonnement, seuil, canal) ne peut exister qu'une fois → un
   // INSERT en double échoue, ce qui supprime la course "SELECT puis INSERT".
   @@unique([subscriptionId, thresholdDays, channel])
   @@index([subscriptionId])
+  @@index([organizationId])
   @@map("reminders_sent")
 }
