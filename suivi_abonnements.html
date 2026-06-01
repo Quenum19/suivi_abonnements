@@ -1,0 +1,370 @@
+<meta charset="utf-8">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=DM+Sans:wght@400;500;600;700&display=swap');
+
+:root{
+  --paper:#F7F3EC;
+  --card:#FFFFFF;
+  --ink:#1B1A17;
+  --muted:#6E685D;
+  --line:#E5DDCF;
+  --brand:#1F4D46;
+  --brand-soft:#E7EEEB;
+  --safe:#2E7D52;
+  --safe-bg:#E6F2EA;
+  --soon:#B5791C;
+  --soon-bg:#FBF0DA;
+  --urgent:#B23A2E;
+  --urgent-bg:#F8E4E0;
+  --shadow:0 1px 2px rgba(27,26,23,.05),0 8px 24px rgba(27,26,23,.06);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:'DM Sans',sans-serif;
+  background:var(--paper);
+  color:var(--ink);
+  min-height:100vh;
+  padding:28px 18px 80px;
+  background-image:radial-gradient(circle at 1px 1px, rgba(27,26,23,.035) 1px, transparent 0);
+  background-size:22px 22px;
+}
+.wrap{max-width:880px;margin:0 auto}
+
+/* Header */
+header{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:8px;flex-wrap:wrap}
+.title-block .eyebrow{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--brand);font-weight:600;margin-bottom:4px}
+h1{font-family:'Fraunces',serif;font-weight:600;font-size:38px;line-height:1.02;letter-spacing:-.01em}
+.subtitle{color:var(--muted);font-size:14px;margin-top:6px}
+.btn-add{
+  background:var(--brand);color:#fff;border:none;border-radius:11px;
+  padding:12px 18px;font-family:'DM Sans';font-weight:600;font-size:14px;cursor:pointer;
+  display:inline-flex;align-items:center;gap:8px;transition:transform .12s ease,filter .12s ease;white-space:nowrap;
+}
+.btn-add:hover{filter:brightness(1.08);transform:translateY(-1px)}
+.btn-add:active{transform:translateY(0)}
+
+/* Summary */
+.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:24px 0 30px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow)}
+.stat .label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:600}
+.stat .big{font-family:'Fraunces',serif;font-size:30px;font-weight:600;margin-top:6px;line-height:1}
+.stat .sub{font-size:13px;color:var(--muted);margin-top:5px}
+
+/* Category */
+.cat{margin-bottom:30px}
+.cat-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.cat-head h2{font-family:'Fraunces',serif;font-weight:600;font-size:20px}
+.cat-head .count{font-size:12px;color:var(--muted);background:var(--brand-soft);color:var(--brand);
+  padding:3px 9px;border-radius:20px;font-weight:600}
+.cat-head .rule{flex:1;height:1px;background:var(--line)}
+
+/* Cards */
+.card{
+  background:var(--card);border:1px solid var(--line);border-left:4px solid var(--line);
+  border-radius:14px;padding:18px 20px;margin-bottom:12px;box-shadow:var(--shadow);
+  display:grid;grid-template-columns:1fr auto;gap:16px;align-items:center;
+  transition:transform .12s ease,box-shadow .12s ease;position:relative;
+}
+.card:hover{transform:translateY(-2px);box-shadow:0 2px 4px rgba(27,26,23,.06),0 14px 30px rgba(27,26,23,.09)}
+.card.s-safe{border-left-color:var(--safe)}
+.card.s-soon{border-left-color:var(--soon)}
+.card.s-urgent{border-left-color:var(--urgent)}
+.c-name{font-weight:700;font-size:17px;display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;letter-spacing:.02em}
+.badge.s-safe{background:var(--safe-bg);color:var(--safe)}
+.badge.s-soon{background:var(--soon-bg);color:var(--soon)}
+.badge.s-urgent{background:var(--urgent-bg);color:var(--urgent)}
+.c-meta{font-size:13px;color:var(--muted);margin-top:7px;display:flex;flex-wrap:wrap;gap:4px 16px}
+.c-meta b{color:var(--ink);font-weight:600}
+.c-notes{font-size:12.5px;color:var(--muted);font-style:italic;margin-top:7px;line-height:1.4}
+.progress{height:5px;background:var(--line);border-radius:4px;margin-top:11px;overflow:hidden}
+.progress > i{display:block;height:100%;border-radius:4px}
+.progress > i.s-safe{background:var(--safe)}
+.progress > i.s-soon{background:var(--soon)}
+.progress > i.s-urgent{background:var(--urgent)}
+
+.c-right{text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:8px;min-width:108px}
+.days{font-family:'Fraunces',serif;font-weight:600;line-height:.9}
+.days .n{font-size:40px}
+.days .u{font-size:13px;color:var(--muted);font-family:'DM Sans';font-weight:600;display:block;margin-top:2px;letter-spacing:.04em}
+.days.s-safe .n{color:var(--safe)}
+.days.s-soon .n{color:var(--soon)}
+.days.s-urgent .n{color:var(--urgent)}
+.actions{display:flex;gap:6px}
+.icon-btn{background:transparent;border:1px solid var(--line);border-radius:8px;width:32px;height:32px;cursor:pointer;
+  font-size:14px;color:var(--muted);transition:all .12s ease;display:grid;place-items:center}
+.icon-btn:hover{background:var(--paper);color:var(--ink);border-color:var(--muted)}
+
+/* Empty */
+.empty{text-align:center;padding:50px 20px;color:var(--muted)}
+
+/* Footer actions */
+.foot{margin-top:18px;display:flex;justify-content:center}
+.link-btn{background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;text-decoration:underline;font-family:'DM Sans'}
+.link-btn:hover{color:var(--ink)}
+
+/* Modal */
+.overlay{position:fixed;inset:0;background:rgba(27,26,23,.42);backdrop-filter:blur(3px);
+  display:none;align-items:center;justify-content:center;padding:20px;z-index:50}
+.overlay.open{display:flex}
+.modal{background:var(--card);border-radius:18px;width:100%;max-width:480px;padding:26px;box-shadow:0 30px 60px rgba(0,0,0,.25);
+  max-height:92vh;overflow:auto}
+.modal h3{font-family:'Fraunces',serif;font-weight:600;font-size:24px;margin-bottom:18px}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em}
+.field input, .field select{
+  width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:10px;font-family:'DM Sans';font-size:14.5px;
+  color:var(--ink);background:var(--paper);transition:border-color .12s ease}
+.field input:focus, .field select:focus{outline:none;border-color:var(--brand)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.modal-actions{display:flex;gap:10px;margin-top:22px}
+.modal-actions button{flex:1;padding:12px;border-radius:11px;font-family:'DM Sans';font-weight:600;font-size:14px;cursor:pointer;border:none;transition:filter .12s}
+.save{background:var(--brand);color:#fff}
+.save:hover{filter:brightness(1.08)}
+.cancel{background:var(--paper);color:var(--ink);border:1px solid var(--line) !important}
+.cancel:hover{background:var(--line)}
+
+@media(max-width:560px){
+  .summary{grid-template-columns:1fr}
+  h1{font-size:30px}
+  .card{grid-template-columns:1fr;}
+  .c-right{flex-direction:row;align-items:center;justify-content:space-between;text-align:left;width:100%}
+  .row2{grid-template-columns:1fr}
+}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="title-block">
+      <div class="eyebrow">Tableau de bord</div>
+      <h1>Échéances d'abonnements</h1>
+      <div class="subtitle">Suivi des dates de renouvellement de tes comptes</div>
+    </div>
+    <button class="btn-add" onclick="openModal()">＋ Ajouter un abonnement</button>
+  </header>
+
+  <div class="summary" id="summary"></div>
+  <div id="list"></div>
+
+  <div class="foot">
+    <button class="link-btn" onclick="resetData()">Réinitialiser les données par défaut</button>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h3 id="modalTitle">Ajouter un abonnement</h3>
+    <input type="hidden" id="f-id">
+    <div class="field">
+      <label>Nom du service</label>
+      <input type="text" id="f-name" placeholder="ex. CapCut">
+    </div>
+    <div class="field">
+      <label>Catégorie</label>
+      <input type="text" id="f-category" list="cats" placeholder="ex. Création de contenu vidéo">
+      <datalist id="cats"></datalist>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Date de début</label>
+        <input type="date" id="f-start">
+      </div>
+      <div class="field">
+        <label>Date d'échéance</label>
+        <input type="date" id="f-expiry">
+      </div>
+    </div>
+    <div class="field">
+      <label>Montant (facultatif)</label>
+      <input type="text" id="f-amount" placeholder="ex. 59,88 USD">
+    </div>
+    <div class="field">
+      <label>Notes (facultatif)</label>
+      <input type="text" id="f-notes" placeholder="ex. Abonnement annuel">
+    </div>
+    <div class="modal-actions">
+      <button class="cancel" onclick="closeModal()">Annuler</button>
+      <button class="save" onclick="saveItem()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SEED = [
+  {id:'s1', name:'CapCut', category:'Création de contenu vidéo', start:'2026-05-29', expiry:'2027-05-29', amount:'', notes:'Abonnement annuel.'},
+  {id:'s2', name:'Opusclip', category:'Création de contenu vidéo', start:'2026-05-09', expiry:'2027-06-29', amount:'', notes:'À vérifier : avec 1 mois, l\u2019échéance serait plutôt le 09/06/2026.'},
+  {id:'s3', name:'Business Web Hosting', category:'Hébergement web', start:'2026-04-01', expiry:'2027-07-01', amount:'59,88 USD', notes:'Hébergement du site newinechurch.org.'}
+];
+
+let data = [];
+const hasStore = typeof window !== 'undefined' && window.storage && typeof window.storage.get === 'function';
+
+async function load(){
+  if(hasStore){
+    try{ const r = await window.storage.get('subs'); if(r && r.value){ data = JSON.parse(r.value); render(); return; } }catch(e){}
+  }
+  data = JSON.parse(JSON.stringify(SEED));
+  await persist();
+  render();
+}
+async function persist(){
+  if(hasStore){ try{ await window.storage.set('subs', JSON.stringify(data)); }catch(e){} }
+}
+
+function daysLeft(expiry){
+  const today = new Date(); today.setHours(0,0,0,0);
+  const e = new Date(expiry+'T00:00:00');
+  return Math.round((e - today)/86400000);
+}
+function statusOf(d){
+  if(d < 0) return 'urgent';
+  if(d <= 30) return 'urgent';
+  if(d <= 60) return 'soon';
+  return 'safe';
+}
+function statusLabel(d){
+  if(d < 0) return 'Expiré';
+  if(d <= 30) return 'Bientôt';
+  if(d <= 60) return 'À surveiller';
+  return 'À jour';
+}
+function fmt(iso){
+  if(!iso) return '—';
+  const [y,m,dd] = iso.split('-');
+  return dd+'/'+m+'/'+y;
+}
+function pct(start,expiry){
+  const s = new Date(start+'T00:00:00'), e = new Date(expiry+'T00:00:00'), n = new Date(); n.setHours(0,0,0,0);
+  if(e<=s) return 100;
+  const p = (n - s)/(e - s)*100;
+  return Math.max(0, Math.min(100, p));
+}
+
+function render(){
+  // Summary
+  const withDays = data.map(x=>({...x, d:daysLeft(x.expiry)}));
+  const upcoming = withDays.filter(x=>x.d>=0).sort((a,b)=>a.d-b.d);
+  const soonCount = withDays.filter(x=>x.d>=0 && x.d<=60).length;
+  const next = upcoming[0];
+
+  const sum = document.getElementById('summary');
+  sum.innerHTML = `
+    <div class="stat">
+      <div class="label">Abonnements suivis</div>
+      <div class="big">${data.length}</div>
+      <div class="sub">dans ${new Set(data.map(x=>x.category)).size} catégorie(s)</div>
+    </div>
+    <div class="stat">
+      <div class="label">Prochaine échéance</div>
+      <div class="big">${next ? next.d + ' j' : '—'}</div>
+      <div class="sub">${next ? next.name + ' · ' + fmt(next.expiry) : 'aucune à venir'}</div>
+    </div>
+    <div class="stat">
+      <div class="label">À surveiller (≤ 60 j)</div>
+      <div class="big">${soonCount}</div>
+      <div class="sub">${soonCount?'à renouveler bientôt':'rien d\u2019urgent'}</div>
+    </div>`;
+
+  // List grouped by category
+  const list = document.getElementById('list');
+  if(!data.length){
+    list.innerHTML = '<div class="empty">Aucun abonnement. Clique sur « Ajouter » pour commencer.</div>';
+    refreshDatalist(); return;
+  }
+  const cats = {};
+  data.forEach(x=>{ (cats[x.category] = cats[x.category]||[]).push(x); });
+  let html = '';
+  Object.keys(cats).sort().forEach(cat=>{
+    const items = cats[cat].slice().sort((a,b)=>daysLeft(a.expiry)-daysLeft(b.expiry));
+    html += `<div class="cat"><div class="cat-head"><h2>${esc(cat)}</h2>
+      <span class="count">${items.length}</span><span class="rule"></span></div>`;
+    items.forEach(x=>{
+      const d = daysLeft(x.expiry), st = statusOf(d), p = pct(x.start,x.expiry);
+      const dayTxt = d<0 ? ('+'+Math.abs(d)) : d;
+      const unit = d<0 ? 'jours de retard' : 'jours restants';
+      html += `
+      <div class="card s-${st}">
+        <div class="c-left">
+          <div class="c-name">${esc(x.name)}<span class="badge s-${st}">${statusLabel(d)}</span></div>
+          <div class="c-meta">
+            <span>Début : <b>${fmt(x.start)}</b></span>
+            <span>Échéance : <b>${fmt(x.expiry)}</b></span>
+            ${x.amount?`<span>Montant : <b>${esc(x.amount)}</b></span>`:''}
+          </div>
+          ${x.notes?`<div class="c-notes">${esc(x.notes)}</div>`:''}
+          <div class="progress"><i class="s-${st}" style="width:${p}%"></i></div>
+        </div>
+        <div class="c-right">
+          <div class="days s-${st}"><span class="n">${dayTxt}</span><span class="u">${unit}</span></div>
+          <div class="actions">
+            <button class="icon-btn" title="Modifier" onclick="editItem('${x.id}')">✎</button>
+            <button class="icon-btn" title="Supprimer" onclick="delItem('${x.id}')">🗑</button>
+          </div>
+        </div>
+      </div>`;
+    });
+    html += '</div>';
+  });
+  list.innerHTML = html;
+  refreshDatalist();
+}
+
+function esc(s){ return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+function refreshDatalist(){
+  const dl = document.getElementById('cats');
+  dl.innerHTML = [...new Set(data.map(x=>x.category))].map(c=>`<option value="${esc(c)}">`).join('');
+}
+
+/* Modal logic */
+function openModal(){
+  document.getElementById('modalTitle').textContent='Ajouter un abonnement';
+  ['f-id','f-name','f-category','f-start','f-expiry','f-amount','f-notes'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('overlay').classList.add('open');
+}
+function editItem(id){
+  const x = data.find(i=>i.id===id); if(!x) return;
+  document.getElementById('modalTitle').textContent='Modifier l\u2019abonnement';
+  document.getElementById('f-id').value=x.id;
+  document.getElementById('f-name').value=x.name;
+  document.getElementById('f-category').value=x.category;
+  document.getElementById('f-start').value=x.start;
+  document.getElementById('f-expiry').value=x.expiry;
+  document.getElementById('f-amount').value=x.amount||'';
+  document.getElementById('f-notes').value=x.notes||'';
+  document.getElementById('overlay').classList.add('open');
+}
+function closeModal(){ document.getElementById('overlay').classList.remove('open'); }
+
+async function saveItem(){
+  const id = document.getElementById('f-id').value;
+  const name = document.getElementById('f-name').value.trim();
+  const category = document.getElementById('f-category').value.trim() || 'Autres';
+  const expiry = document.getElementById('f-expiry').value;
+  if(!name || !expiry){ alert('Le nom et la date d\u2019échéance sont obligatoires.'); return; }
+  const obj = {
+    name, category, expiry,
+    start: document.getElementById('f-start').value,
+    amount: document.getElementById('f-amount').value.trim(),
+    notes: document.getElementById('f-notes').value.trim(),
+  };
+  if(id){ const i = data.findIndex(x=>x.id===id); if(i>=0) data[i] = {...data[i], ...obj}; }
+  else { obj.id = 'id'+Date.now(); data.push(obj); }
+  await persist(); closeModal(); render();
+}
+async function delItem(id){
+  const x = data.find(i=>i.id===id);
+  if(!confirm('Supprimer « '+(x?x.name:'')+' » ?')) return;
+  data = data.filter(i=>i.id!==id);
+  await persist(); render();
+}
+async function resetData(){
+  if(!confirm('Restaurer les 3 abonnements par défaut ? Tes modifications seront perdues.')) return;
+  data = JSON.parse(JSON.stringify(SEED));
+  await persist(); render();
+}
+
+document.getElementById('overlay').addEventListener('click',e=>{ if(e.target.id==='overlay') closeModal(); });
+load();
+</script>

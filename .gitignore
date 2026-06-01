@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build output
+dist/
+build/
+frontend/dist/
+backend/dist/
+
+# Environment & secrets
+.env
+.env.local
+*.local
+
+# Database (SQLite)
+*.db
+*.db-journal
+backend/prisma/*.db
+backend/prisma/dev.db
+data/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Test / coverage
+coverage/

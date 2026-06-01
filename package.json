@@ -1,0 +1,26 @@
+{
+  "name": "suivi-abonnements",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Application de suivi des échéances d'abonnements avec rappels automatiques (email + webhook n8n + flux calendrier ICS).",
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev": "concurrently -n api,web -c green,cyan \"npm run dev -w backend\" \"npm run dev -w frontend\"",
+    "build": "npm run build -w frontend && npm run build -w backend",
+    "start": "npm run start -w backend",
+    "test": "npm run test -w backend",
+    "db:migrate": "npm run db:migrate -w backend",
+    "db:seed": "npm run db:seed -w backend",
+    "setup": "npm install && npm run db:migrate && npm run db:seed",
+    "lint": "npm run lint -w backend && npm run lint -w frontend"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
