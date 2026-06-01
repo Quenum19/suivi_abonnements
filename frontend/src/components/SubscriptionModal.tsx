@@ -18,7 +18,23 @@ const empty: SubscriptionInput = {
   amount: null,
   currency: '',
   notes: '',
+  frequency: 'yearly',
+  status: 'active',
 };
+
+const FREQ_OPTIONS: { value: SubscriptionInput['frequency']; label: string }[] = [
+  { value: 'weekly', label: 'Hebdomadaire' },
+  { value: 'monthly', label: 'Mensuel' },
+  { value: 'quarterly', label: 'Trimestriel' },
+  { value: 'yearly', label: 'Annuel' },
+  { value: 'one_time', label: 'Paiement unique' },
+];
+
+const STATUS_OPTIONS: { value: SubscriptionInput['status']; label: string }[] = [
+  { value: 'active', label: 'Actif' },
+  { value: 'unused', label: 'Inutilisé' },
+  { value: 'cancelled', label: 'Annulé' },
+];
 
 export function SubscriptionModal({ open, editing, categories, onClose, onSave }: Props) {
   const [form, setForm] = useState<SubscriptionInput & { amountStr: string }>({
@@ -38,6 +54,8 @@ export function SubscriptionModal({ open, editing, categories, onClose, onSave }
         amount: editing.amount,
         currency: editing.currency ?? '',
         notes: editing.notes ?? '',
+        frequency: editing.frequency,
+        status: editing.lifecycle,
         amountStr: editing.amount != null ? String(editing.amount) : '',
       });
     } else {
@@ -48,7 +66,8 @@ export function SubscriptionModal({ open, editing, categories, onClose, onSave }
 
   if (!open) return null;
 
-  const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
+  const set = (k: keyof typeof form, v: string) =>
+    setForm((f) => ({ ...f, [k]: v }) as typeof f);
 
   async function submit() {
     if (!form.name.trim() || !form.expiryDate) {
@@ -71,6 +90,8 @@ export function SubscriptionModal({ open, editing, categories, onClose, onSave }
         amount,
         currency: amount != null ? form.currency || 'EUR' : null,
         notes: form.notes?.trim() || null,
+        frequency: form.frequency,
+        status: form.status,
       });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erreur lors de l’enregistrement.');
@@ -153,6 +174,34 @@ export function SubscriptionModal({ open, editing, categories, onClose, onSave }
               {SUPPORTED_CURRENCIES.map((c) => (
                 <option key={c} value={c}>
                   {c}
+                </option>
+              ))}
+            </select>
+          </Field>
+        </div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Field label="Périodicité">
+            <select
+              className={inputCls}
+              value={form.frequency}
+              onChange={(e) => set('frequency', e.target.value)}
+            >
+              {FREQ_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Utilisation">
+            <select
+              className={inputCls}
+              value={form.status}
+              onChange={(e) => set('status', e.target.value)}
+            >
+              {STATUS_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
                 </option>
               ))}
             </select>

@@ -1,4 +1,5 @@
 import type {
+  Insights,
   ReminderConfig,
   ReminderHistoryEntry,
   Subscription,
@@ -60,6 +61,8 @@ export const api = {
   update: (id: string, input: Partial<SubscriptionInput>) =>
     request<Subscription>(`/subscriptions/${id}`, { method: 'PUT', body: JSON.stringify(input) }),
   remove: (id: string) => request<void>(`/subscriptions/${id}`, { method: 'DELETE' }),
+
+  insights: () => request<Insights>('/insights'),
 
   reminderConfig: () => request<ReminderConfig>('/reminders/config'),
   runReminders: (dryRun = false) =>

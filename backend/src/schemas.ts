@@ -17,6 +17,10 @@ export const createSubscriptionSchema = z.object({
   amount: z.number().finite().nonnegative().nullable().optional(),
   currency: z.string().trim().min(1).max(8).nullable().optional(),
   notes: z.string().trim().max(2000).nullable().optional(),
+  frequency: z
+    .enum(['weekly', 'monthly', 'quarterly', 'yearly', 'one_time'])
+    .default('yearly'),
+  status: z.enum(['active', 'unused', 'cancelled']).default('active'),
 });
 
 // Tous les champs deviennent optionnels pour PATCH/PUT.

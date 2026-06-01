@@ -13,6 +13,7 @@ import { subscriptionsRouter } from './routes/subscriptions.js';
 import { remindersRouter } from './routes/reminders.js';
 import { dataioRouter } from './routes/dataio.js';
 import { calendarRouter } from './routes/calendar.js';
+import { insightsRouter } from './routes/insights.js';
 
 export function createApp(): Express {
   const app = express();
@@ -53,6 +54,7 @@ export function createApp(): Express {
   // Routes protégées
   app.use('/api/subscriptions', requireAuth, subscriptionsRouter);
   app.use('/api/reminders', requireAuth, remindersRouter);
+  app.use('/api/insights', requireAuth, insightsRouter);
   app.use('/api', requireAuth, dataioRouter);
 
   // Frontend statique (production) : sert frontend/dist si présent.

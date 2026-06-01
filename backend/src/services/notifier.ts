@@ -17,15 +17,40 @@ export type Channel = 'email' | 'n8n';
 let transporter: Transporter | null = null;
 function getTransporter(): Transporter | null {
   if (!env.EMAIL_ENABLED) return null;
+  if (!env.SMTP_HOST) throw new Error('SMTP_HOST manquant : configure le serveur SMTP dans .env.');
   if (!transporter) {
     transporter = nodemailer.createTransport({
       host: env.SMTP_HOST,
       port: env.SMTP_PORT,
-      secure: env.SMTP_SECURE,
+      // secure=true pour le port 465 ; sinon STARTTLS (587).
+      secure: env.SMTP_SECURE || env.SMTP_PORT === 465,
       auth: env.SMTP_USER ? { user: env.SMTP_USER, pass: env.SMTP_PASS } : undefined,
+      pool: true,
+      maxConnections: 3,
+      connectionTimeout: 10_000,
+      greetingTimeout: 10_000,
+      socketTimeout: 20_000,
     });
   }
   return transporter;
+}
+
+/** Liste des destinataires (EMAIL_TO peut contenir plusieurs adresses séparées par des virgules). */
+function recipients(): string[] {
+  return env.EMAIL_TO.split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+/**
+ * Vérifie la connexion SMTP (handshake + auth) sans envoyer d'e-mail.
+ * Utilisé au démarrage et par l'endpoint de test pour un diagnostic clair.
+ */
+export async function verifyEmail(): Promise<void> {
+  const t = getTransporter();
+  if (!t) throw new Error('Canal email désactivé (EMAIL_ENABLED=false).');
+  if (recipients().length === 0) throw new Error('EMAIL_TO manquant : aucun destinataire configuré.');
+  await t.verify();
 }
 
 /** Canaux activés par la configuration. */
@@ -36,18 +61,42 @@ export function enabledChannels(): Channel[] {
   return c;
 }
 
+function emailHtml(p: ReminderPayload, amountTxt: string, when: string): string {
+  const color = p.daysLeft < 0 || p.daysLeft <= 30 ? '#B23A2E' : p.daysLeft <= 60 ? '#B5791C' : '#2E7D52';
+  const dayBig = p.daysLeft < 0 ? `+${Math.abs(p.daysLeft)}` : String(p.daysLeft);
+  const unit = p.daysLeft < 0 ? 'jours de retard' : 'jours restants';
+  return `
+  <div style="font-family:Arial,Helvetica,sans-serif;background:#F7F3EC;padding:24px">
+    <div style="max-width:520px;margin:0 auto;background:#fff;border:1px solid #E5DDCF;border-left:5px solid ${color};border-radius:14px;padding:24px">
+      <div style="font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#1F4D46;font-weight:700">Rappel d'échéance</div>
+      <h1 style="margin:6px 0 2px;font-size:22px;color:#1B1A17">${p.name}</h1>
+      <div style="color:#6E685D;font-size:14px">${p.category}</div>
+      <div style="margin:18px 0;font-size:40px;font-weight:700;color:${color};line-height:1">
+        ${dayBig} <span style="font-size:14px;color:#6E685D;font-weight:600">${unit}</span>
+      </div>
+      <table style="width:100%;font-size:14px;color:#1B1A17;border-collapse:collapse">
+        <tr><td style="padding:4px 0;color:#6E685D">Échéance</td><td style="text-align:right;font-weight:600">${p.expiry} (${when})</td></tr>
+        <tr><td style="padding:4px 0;color:#6E685D">Montant</td><td style="text-align:right;font-weight:600">${amountTxt}</td></tr>
+      </table>
+      <p style="margin-top:20px;font-size:12px;color:#6E685D">Envoyé automatiquement par ton suivi d'abonnements.</p>
+    </div>
+  </div>`;
+}
+
 async function sendEmail(p: ReminderPayload): Promise<void> {
   const t = getTransporter();
   if (!t) throw new Error('Canal email désactivé ou SMTP non configuré.');
+  const to = recipients();
+  if (to.length === 0) throw new Error('EMAIL_TO manquant : aucun destinataire configuré.');
   const amountTxt = p.amount != null ? formatAmount(p.amount, p.currency ?? 'EUR') : '—';
   const when =
     p.daysLeft < 0 ? `dépassée depuis ${Math.abs(p.daysLeft)} j` : `dans ${p.daysLeft} j`;
   await t.sendMail({
     from: env.EMAIL_FROM,
-    to: env.EMAIL_TO,
-    subject: `⏰ Échéance abonnement : ${p.name} (${when})`,
+    to,
+    subject: `⏰ Échéance : ${p.name} (${when})`,
     text: `L'abonnement « ${p.name} » (${p.category}) arrive à échéance le ${p.expiry} — ${when}.\nMontant : ${amountTxt}.`,
-    html: `<p>L'abonnement <b>${p.name}</b> (${p.category}) arrive à échéance le <b>${p.expiry}</b> — ${when}.</p><p>Montant : ${amountTxt}.</p>`,
+    html: emailHtml(p, amountTxt, when),
   });
 }
 

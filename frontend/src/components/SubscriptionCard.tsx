@@ -29,6 +29,16 @@ export function SubscriptionCard({
         <div className="flex flex-wrap items-center gap-2.5 text-[17px] font-bold">
           {sub.name}
           <StatusBadge status={sub.status} label={sub.statusLabel} />
+          {sub.lifecycle === 'unused' && (
+            <span className="rounded-full bg-soon-bg px-2 py-0.5 text-[11px] font-bold text-soon">
+              Inutilisé
+            </span>
+          )}
+          {sub.lifecycle === 'cancelled' && (
+            <span className="rounded-full bg-line px-2 py-0.5 text-[11px] font-bold text-muted">
+              Annulé
+            </span>
+          )}
         </div>
         <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-muted">
           <span>

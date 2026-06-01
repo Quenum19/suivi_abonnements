@@ -5,6 +5,7 @@ import { SummaryBar } from './components/SummaryBar';
 import { SubscriptionCard } from './components/SubscriptionCard';
 import { SubscriptionModal } from './components/SubscriptionModal';
 import { HistoryDrawer } from './components/HistoryDrawer';
+import { InsightsDrawer } from './components/InsightsDrawer';
 
 export default function App() {
   const [subs, setSubs] = useState<Subscription[]>([]);
@@ -21,6 +22,7 @@ export default function App() {
   const [config, setConfig] = useState<ReminderConfig | null>(null);
   const [authRequired, setAuthRequired] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [insightsOpen, setInsightsOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const showToast = (m: string) => {
@@ -187,6 +189,7 @@ export default function App() {
             </option>
           ))}
         </select>
+        <ToolbarButton onClick={() => setInsightsOpen(true)}>💡 Économies</ToolbarButton>
         <ToolbarButton onClick={handleRunReminders}>🔔 Vérifier rappels</ToolbarButton>
         <ToolbarButton onClick={() => setHistoryOpen(true)}>🕘 Historique</ToolbarButton>
         <a href={api.calendarUrl()} target="_blank" rel="noreferrer">
@@ -269,6 +272,12 @@ export default function App() {
         open={historyOpen}
         config={config}
         onClose={() => setHistoryOpen(false)}
+        onToast={showToast}
+      />
+
+      <InsightsDrawer
+        open={insightsOpen}
+        onClose={() => setInsightsOpen(false)}
         onToast={showToast}
       />
 

@@ -1,5 +1,6 @@
 import type { Subscription } from '@prisma/client';
 import { daysLeft, progressPct, statusLabel, statusOf } from './dates.js';
+import { annualCost, monthlyCost } from './cost.js';
 
 const isoDay = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : null);
 
@@ -15,12 +16,16 @@ export function serializeSubscription(s: Subscription, now = new Date()) {
     amount: s.amount,
     currency: s.currency,
     notes: s.notes,
+    frequency: s.frequency,
+    lifecycle: s.status, // active | unused | cancelled
     createdAt: s.createdAt.toISOString(),
     updatedAt: s.updatedAt.toISOString(),
     // Champs calculés (cohérents avec le client) :
     daysLeft: dl,
-    status: statusOf(dl),
+    status: statusOf(dl), // statut couleur (échéance)
     statusLabel: statusLabel(dl),
     progress: Math.round(progressPct(s.startDate, s.expiryDate, now)),
+    monthlyCost: s.amount != null ? Math.round(monthlyCost(s.amount, s.frequency) * 100) / 100 : null,
+    annualCost: s.amount != null ? Math.round(annualCost(s.amount, s.frequency) * 100) / 100 : null,
   };
 }
