@@ -1,0 +1,50 @@
+// Prisma schema — Suivi des abonnements
+// SQLite pour démarrer ; passer à PostgreSQL = changer `provider` + DATABASE_URL,
+// le reste du schéma est compatible.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Subscription {
+  id         String   @id @default(cuid())
+  name       String
+  category   String   @default("Autres")
+  startDate  DateTime?
+  expiryDate DateTime
+  amount     Float?
+  currency   String?
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  reminders ReminderSent[]
+
+  // OPTIMISATION : index sur la date d'échéance — le planificateur quotidien
+  // filtre/trie par expiryDate, l'index évite un scan complet de la table.
+  @@index([expiryDate])
+  @@index([category])
+  @@map("subscriptions")
+}
+
+model ReminderSent {
+  id             String   @id @default(cuid())
+  subscriptionId String
+  thresholdDays  Int
+  channel        String // "email" | "n8n"
+  sentAt         DateTime @default(now())
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  // OPTIMISATION : l'idempotence est garantie au niveau de la base.
+  // Un même (abonnement, seuil, canal) ne peut exister qu'une fois → un
+  // INSERT en double échoue, ce qui supprime la course "SELECT puis INSERT".
+  @@unique([subscriptionId, thresholdDays, channel])
+  @@index([subscriptionId])
+  @@map("reminders_sent")
+}
