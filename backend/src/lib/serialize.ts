@@ -18,6 +18,7 @@ export function serializeSubscription(s: Subscription, now = new Date()) {
     notes: s.notes,
     frequency: s.frequency,
     lifecycle: s.status, // active | unused | cancelled
+    responsible: s.responsible,
     createdAt: s.createdAt.toISOString(),
     updatedAt: s.updatedAt.toISOString(),
     // Champs calculés (cohérents avec le client) :

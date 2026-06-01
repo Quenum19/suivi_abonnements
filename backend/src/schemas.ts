@@ -21,6 +21,7 @@ export const createSubscriptionSchema = z.object({
     .enum(['weekly', 'monthly', 'quarterly', 'yearly', 'one_time'])
     .default('yearly'),
   status: z.enum(['active', 'unused', 'cancelled']).default('active'),
+  responsible: z.string().trim().max(200).nullable().optional(),
 });
 
 // Tous les champs deviennent optionnels pour PATCH/PUT.

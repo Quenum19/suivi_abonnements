@@ -48,6 +48,10 @@ const EnvSchema = z.object({
 
   N8N_ENABLED: boolish(false),
   N8N_WEBHOOK_URL: z.string().optional().default(''),
+
+  // Numéro WhatsApp par défaut (au format international, ex. +2250700000000)
+  // transmis dans le payload n8n pour router le rappel vers WhatsApp.
+  WHATSAPP_TO: z.string().optional().default(''),
 });
 
 const parsed = EnvSchema.safeParse(process.env);

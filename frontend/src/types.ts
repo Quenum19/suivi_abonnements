@@ -13,6 +13,7 @@ export interface Subscription {
   notes: string | null;
   frequency: Frequency;
   lifecycle: Lifecycle;
+  responsible: string | null;
   createdAt: string;
   updatedAt: string;
   // Champs calculés renvoyés par le serveur :
@@ -34,6 +35,7 @@ export interface SubscriptionInput {
   notes: string | null;
   frequency: Frequency;
   status: Lifecycle;
+  responsible: string | null;
 }
 
 export interface Insights {

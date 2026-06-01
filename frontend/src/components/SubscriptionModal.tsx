@@ -20,6 +20,7 @@ const empty: SubscriptionInput = {
   notes: '',
   frequency: 'yearly',
   status: 'active',
+  responsible: '',
 };
 
 const FREQ_OPTIONS: { value: SubscriptionInput['frequency']; label: string }[] = [
@@ -56,6 +57,7 @@ export function SubscriptionModal({ open, editing, categories, onClose, onSave }
         notes: editing.notes ?? '',
         frequency: editing.frequency,
         status: editing.lifecycle,
+        responsible: editing.responsible ?? '',
         amountStr: editing.amount != null ? String(editing.amount) : '',
       });
     } else {
@@ -92,6 +94,7 @@ export function SubscriptionModal({ open, editing, categories, onClose, onSave }
         notes: form.notes?.trim() || null,
         frequency: form.frequency,
         status: form.status,
+        responsible: form.responsible?.trim() || null,
       });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erreur lors de l’enregistrement.');
@@ -207,6 +210,14 @@ export function SubscriptionModal({ open, editing, categories, onClose, onSave }
             </select>
           </Field>
         </div>
+        <Field label="Responsable / relance (facultatif)">
+          <input
+            className={inputCls}
+            value={form.responsible ?? ''}
+            onChange={(e) => set('responsible', e.target.value)}
+            placeholder="ex. Awa +225 07 00 00 00 00 (WhatsApp)"
+          />
+        </Field>
         <Field label="Notes (facultatif)">
           <input
             className={inputCls}

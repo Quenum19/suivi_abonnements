@@ -10,6 +10,9 @@ export interface ReminderPayload {
   daysLeft: number;
   amount: number | null;
   currency: string | null;
+  // Enrichissements (non-breaking) pour le routage des rappels dans n8n :
+  responsible?: string | null; // nom / e-mail / n° WhatsApp à relancer
+  frequency?: string;
 }
 
 export type Channel = 'email' | 'n8n';
@@ -108,11 +111,17 @@ async function sendN8n(p: ReminderPayload): Promise<void> {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
+      // Format historique (ne pas casser les scénarios n8n existants) :
       name: p.name,
       category: p.category,
       expiry: p.expiry,
       daysLeft: p.daysLeft,
       amount: p.amount,
+      // Enrichissements pour router vers WhatsApp / email / agenda dans n8n :
+      currency: p.currency,
+      frequency: p.frequency ?? null,
+      responsible: p.responsible ?? null,
+      whatsappTo: env.WHATSAPP_TO || null,
     }),
   });
   if (!res.ok) {

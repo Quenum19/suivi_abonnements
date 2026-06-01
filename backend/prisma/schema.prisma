@@ -24,6 +24,8 @@ model Subscription {
   frequency  String   @default("yearly")
   // Cycle de vie : active | unused | cancelled
   status     String   @default("active")
+  // Personne/contact à relancer (nom, e-mail ou n° WhatsApp) — routage des rappels.
+  responsible String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 

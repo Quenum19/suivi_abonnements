@@ -86,6 +86,8 @@ export async function runReminders(opts: RunOptions = {}): Promise<RunResult> {
         daysLeft: dl,
         amount: sub.amount ?? null,
         currency: sub.currency ?? null,
+        responsible: sub.responsible ?? null,
+        frequency: sub.frequency,
       };
 
       for (const channel of channels) {
