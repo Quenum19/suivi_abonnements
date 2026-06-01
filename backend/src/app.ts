@@ -1,5 +1,7 @@
 import express, { type Express } from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import morgan from 'morgan';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -15,10 +17,27 @@ import { calendarRouter } from './routes/calendar.js';
 export function createApp(): Express {
   const app = express();
 
+  // CSP désactivée : le SPA charge Google Fonts + styles inline. Les autres
+  // en-têtes de sécurité de helmet restent actifs.
+  app.use(helmet({ contentSecurityPolicy: false }));
   app.use(cors());
   app.use(express.json({ limit: '2mb' }));
   app.use(express.text({ type: 'text/csv', limit: '2mb' }));
   if (env.NODE_ENV !== 'test') app.use(morgan('dev'));
+
+  // Limitation de débit sur l'API (désactivée en test).
+  if (env.NODE_ENV !== 'test') {
+    app.use(
+      '/api',
+      rateLimit({
+        windowMs: 15 * 60 * 1000,
+        max: 600,
+        standardHeaders: true,
+        legacyHeaders: false,
+        message: { error: 'Trop de requêtes, réessayez plus tard.' },
+      }),
+    );
+  }
 
   // Santé (publique)
   app.get('/api/health', (_req, res) => res.json({ status: 'ok', time: new Date().toISOString() }));

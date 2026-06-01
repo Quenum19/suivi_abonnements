@@ -76,3 +76,15 @@ export async function notify(channel: Channel, payload: ReminderPayload): Promis
   if (channel === 'email') return sendEmail(payload);
   return sendN8n(payload);
 }
+
+/** Charge utile de démonstration pour tester un canal. */
+export function samplePayload(): ReminderPayload {
+  return {
+    name: 'Abonnement de test',
+    category: 'Test',
+    expiry: new Date().toISOString().slice(0, 10),
+    daysLeft: 7,
+    amount: 9.99,
+    currency: 'EUR',
+  };
+}

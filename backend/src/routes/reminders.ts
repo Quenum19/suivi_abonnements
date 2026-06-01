@@ -1,9 +1,11 @@
 import { Router } from 'express';
+import { z } from 'zod';
+import { prisma } from '../db.js';
 import { runRemindersSchema } from '../schemas.js';
 import { runReminders } from '../services/reminders.js';
-import { enabledChannels } from '../services/notifier.js';
+import { enabledChannels, notify, samplePayload, type Channel } from '../services/notifier.js';
 import { env } from '../env.js';
-import { asyncHandler } from '../lib/http.js';
+import { asyncHandler, HttpError } from '../lib/http.js';
 
 export const remindersRouter = Router();
 
@@ -28,5 +30,48 @@ remindersRouter.post(
     const { asOf, dryRun } = runRemindersSchema.parse(req.body ?? {});
     const result = await runReminders({ asOf, dryRun });
     res.json({ data: result });
+  }),
+);
+
+// GET /api/reminders/history?limit= — journal des rappels déjà envoyés.
+remindersRouter.get(
+  '/history',
+  asyncHandler(async (req, res) => {
+    const limit = Math.min(Math.max(Number(req.query.limit ?? 100), 1), 500);
+    const rows = await prisma.reminderSent.findMany({
+      orderBy: { sentAt: 'desc' },
+      take: limit,
+      include: { subscription: { select: { name: true, category: true } } },
+    });
+    res.json({
+      data: rows.map((r) => ({
+        id: r.id,
+        subscriptionId: r.subscriptionId,
+        name: r.subscription?.name ?? '(supprimé)',
+        category: r.subscription?.category ?? null,
+        thresholdDays: r.thresholdDays,
+        channel: r.channel,
+        sentAt: r.sentAt.toISOString(),
+      })),
+    });
+  }),
+);
+
+// POST /api/reminders/test — envoie un rappel de démonstration sur un canal.
+// body : { channel: "email" | "n8n" }
+const testSchema = z.object({ channel: z.enum(['email', 'n8n']) });
+remindersRouter.post(
+  '/test',
+  asyncHandler(async (req, res) => {
+    const { channel } = testSchema.parse(req.body ?? {});
+    if (!enabledChannels().includes(channel as Channel)) {
+      throw new HttpError(400, `Canal « ${channel} » désactivé ou non configuré (voir .env).`);
+    }
+    try {
+      await notify(channel as Channel, samplePayload());
+      res.json({ data: { ok: true, channel } });
+    } catch (e) {
+      throw new HttpError(502, e instanceof Error ? e.message : 'Échec de l’envoi de test.');
+    }
   }),
 );
