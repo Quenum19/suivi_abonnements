@@ -1,4 +1,9 @@
-import type { ReminderConfig, Subscription, SubscriptionInput } from './types';
+import type {
+  ReminderConfig,
+  ReminderHistoryEntry,
+  Subscription,
+  SubscriptionInput,
+} from './types';
 
 const BASE = (import.meta.env.VITE_API_BASE ?? '').replace(/\/$/, '');
 
@@ -59,6 +64,12 @@ export const api = {
   reminderConfig: () => request<ReminderConfig>('/reminders/config'),
   runReminders: (dryRun = false) =>
     request<unknown>('/reminders/run', { method: 'POST', body: JSON.stringify({ dryRun }) }),
+  reminderHistory: () => request<ReminderHistoryEntry[]>('/reminders/history'),
+  testChannel: (channel: 'email' | 'n8n') =>
+    request<{ ok: boolean; channel: string }>('/reminders/test', {
+      method: 'POST',
+      body: JSON.stringify({ channel }),
+    }),
 
   importJson: (items: SubscriptionInput[], replace: boolean) =>
     request<{ imported: number }>('/import', {

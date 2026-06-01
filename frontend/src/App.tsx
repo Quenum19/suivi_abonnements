@@ -4,6 +4,7 @@ import { ApiError, api, getAppPassword, setAppPassword } from './api';
 import { SummaryBar } from './components/SummaryBar';
 import { SubscriptionCard } from './components/SubscriptionCard';
 import { SubscriptionModal } from './components/SubscriptionModal';
+import { HistoryDrawer } from './components/HistoryDrawer';
 
 export default function App() {
   const [subs, setSubs] = useState<Subscription[]>([]);
@@ -19,6 +20,7 @@ export default function App() {
 
   const [config, setConfig] = useState<ReminderConfig | null>(null);
   const [authRequired, setAuthRequired] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const showToast = (m: string) => {
@@ -42,6 +44,8 @@ export default function App() {
     } finally {
       setLoading(false);
     }
+    // promptPassword est stable (ne dépend que de fonctions stables).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -184,6 +188,7 @@ export default function App() {
           ))}
         </select>
         <ToolbarButton onClick={handleRunReminders}>🔔 Vérifier rappels</ToolbarButton>
+        <ToolbarButton onClick={() => setHistoryOpen(true)}>🕘 Historique</ToolbarButton>
         <a href={api.calendarUrl()} target="_blank" rel="noreferrer">
           <ToolbarButton>📅 Calendrier (.ics)</ToolbarButton>
         </a>
@@ -258,6 +263,13 @@ export default function App() {
           setEditing(null);
         }}
         onSave={handleSave}
+      />
+
+      <HistoryDrawer
+        open={historyOpen}
+        config={config}
+        onClose={() => setHistoryOpen(false)}
+        onToast={showToast}
       />
 
       {toast && (

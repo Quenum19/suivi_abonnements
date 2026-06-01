@@ -35,3 +35,13 @@ export interface ReminderConfig {
   schedulerEnabled: boolean;
   timezone: string;
 }
+
+export interface ReminderHistoryEntry {
+  id: string;
+  subscriptionId: string;
+  name: string;
+  category: string | null;
+  thresholdDays: number;
+  channel: 'email' | 'n8n';
+  sentAt: string;
+}

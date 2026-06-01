@@ -41,6 +41,19 @@ Docker fait tourner l'API, le cron et le frontend.
   et rend l'envoi sûr même en exécutions concurrentes. Un index sur `expiryDate`
   garde le scan quotidien efficace (pas de full‑scan).
 
+### Pour aller plus loin (2ᵉ itération)
+
+- 🕘 **Historique & test des rappels** : panneau « Historique » dans l'UI +
+  `GET /api/reminders/history` (audit des envois) et `POST /api/reminders/test`
+  pour vérifier la config d'un canal (email/n8n) en un clic, sans attendre le cron.
+- 🔒 **Durcissement** : `helmet` (en‑têtes de sécurité) + `express-rate-limit`
+  (600 req / 15 min sur `/api`).
+- ✅ **Couverture de tests étendue** : **22 tests** (logique dates/statut,
+  idempotence des rappels, **API end‑to‑end via supertest**, génération ICS,
+  round‑trip CSV).
+- 🤖 **Intégration continue** : workflow GitHub Actions ([.github/workflows/ci.yml](.github/workflows/ci.yml))
+  — lint + tests + build à chaque push/PR.
+
 ---
 
 ## Démarrage rapide (Docker — une commande)
@@ -109,6 +122,8 @@ Voir [`.env.example`](.env.example) — entièrement commenté. Points clés :
 | DELETE   | `/api/subscriptions/:id`   | Suppression                                    |
 | GET      | `/api/reminders/config`    | Canaux / seuils / planning actifs             |
 | POST     | `/api/reminders/run`       | Déclenche le check (`{ asOf?, dryRun? }`)     |
+| GET      | `/api/reminders/history`   | Journal des rappels envoyés (`?limit=`)       |
+| POST     | `/api/reminders/test`      | Envoie un rappel de démo (`{ channel }`)      |
 | GET      | `/api/export?format=json\|csv` | Export                                    |
 | POST     | `/api/import`              | Import JSON (`{ items, replace }`)            |
 | POST     | `/api/import/csv`          | Import CSV                                     |
