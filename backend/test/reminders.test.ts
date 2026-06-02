@@ -19,7 +19,8 @@ async function seed() {
   await prisma.reminderSent.deleteMany({});
   await prisma.subscription.deleteMany({});
   await prisma.organization.deleteMany({});
-  const org = await prisma.organization.create({ data: { name: 'Test Org' } });
+  // Plan pro : autorise le canal n8n utilisé par ces tests.
+  const org = await prisma.organization.create({ data: { name: 'Test Org', plan: 'pro' } });
   orgId = org.id;
   await prisma.subscription.createMany({
     data: [

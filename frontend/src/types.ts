@@ -50,6 +50,28 @@ export interface Session {
   role: string;
 }
 
+export interface BillingStatus {
+  plan: 'free' | 'pro' | 'team';
+  label: string;
+  used: number;
+  max: number | null;
+  channels: ('email' | 'n8n')[];
+}
+
+export interface PlanCatalogItem {
+  id: 'free' | 'pro' | 'team';
+  label: string;
+  maxSubscriptions: number | null;
+  channels: ('email' | 'n8n')[];
+  maxMembers: number | null;
+}
+
+export interface PlanCatalog {
+  billingEnabled: boolean;
+  manualEnabled: boolean;
+  plans: PlanCatalogItem[];
+}
+
 export interface ParsedInvoice {
   name: string | null;
   amount: number | null;

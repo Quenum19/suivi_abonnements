@@ -1,6 +1,8 @@
 import type {
+  BillingStatus,
   Insights,
   ParsedInvoice,
+  PlanCatalog,
   ReminderConfig,
   ReminderHistoryEntry,
   Session,
@@ -83,6 +85,13 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ items, replace }),
     }),
+
+  billingPlans: () => request<PlanCatalog>('/billing/plans'),
+  billingStatus: () => request<BillingStatus>('/billing/status'),
+  billingCheckout: (plan: 'pro' | 'team') =>
+    request<{ url: string }>('/billing/checkout', { method: 'POST', body: JSON.stringify({ plan }) }),
+  billingActivate: (plan: 'free' | 'pro' | 'team') =>
+    request<{ plan: string }>('/billing/activate', { method: 'POST', body: JSON.stringify({ plan }) }),
 
   exportUrl: (format: 'json' | 'csv') => `${BASE}/api/export?format=${format}`,
   calendarUrl: (token: string) => `${BASE}/api/calendar/${token}.ics`,

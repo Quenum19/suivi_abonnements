@@ -2,6 +2,7 @@ import { prisma } from '../db.js';
 import { env } from '../env.js';
 import { daysLeft } from '../lib/dates.js';
 import { enabledChannels, notify, type Channel, type ReminderPayload } from './notifier.js';
+import { allowedChannelsForPlan } from './billing.js';
 
 export interface RunOptions {
   asOf?: Date;
@@ -73,12 +74,17 @@ export async function runReminders(opts: RunOptions = {}): Promise<RunResult> {
       ...(opts.organizationId ? { organizationId: opts.organizationId } : {}),
     },
     orderBy: { expiryDate: 'asc' },
+    include: { organization: { select: { plan: true } } },
   });
   result.considered = subs.length;
 
   for (const sub of subs) {
     const dl = daysLeft(sub.expiryDate, asOf);
     if (dl < 0) continue;
+
+    // Gating tarifaire : on n'envoie que sur les canaux autorisés par le plan.
+    const subChannels = allowedChannelsForPlan(sub.organization.plan, channels);
+    if (subChannels.length === 0) continue;
 
     for (const threshold of thresholds) {
       if (dl > threshold) continue;
@@ -94,7 +100,7 @@ export async function runReminders(opts: RunOptions = {}): Promise<RunResult> {
         frequency: sub.frequency,
       };
 
-      for (const channel of channels) {
+      for (const channel of subChannels) {
         if (dryRun) {
           const already = await prisma.reminderSent.findUnique({
             where: {

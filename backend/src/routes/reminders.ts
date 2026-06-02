@@ -4,6 +4,7 @@ import { prisma } from '../db.js';
 import { runRemindersSchema } from '../schemas.js';
 import { runReminders } from '../services/reminders.js';
 import { enabledChannels, notify, samplePayload, type Channel } from '../services/notifier.js';
+import { allowedChannelsForPlan, planOf } from '../services/billing.js';
 import { env } from '../env.js';
 import { asyncHandler, HttpError } from '../lib/http.js';
 
@@ -67,6 +68,16 @@ remindersRouter.post(
     const { channel } = testSchema.parse(req.body ?? {});
     if (!enabledChannels().includes(channel as Channel)) {
       throw new HttpError(400, `Canal « ${channel} » désactivé ou non configuré (voir .env).`);
+    }
+    const org = await prisma.organization.findUnique({
+      where: { id: req.auth!.organizationId },
+    });
+    const plan = planOf(org?.plan ?? 'free');
+    if (!allowedChannelsForPlan(plan.id, [channel as Channel]).length) {
+      throw new HttpError(
+        402,
+        `Le canal « ${channel} » n’est pas inclus dans le plan ${plan.label}. Passe à un plan supérieur.`,
+      );
     }
     try {
       await notify(channel as Channel, samplePayload());

@@ -17,6 +17,7 @@ import { calendarRouter } from './routes/calendar.js';
 import { insightsRouter } from './routes/insights.js';
 import { authRouter } from './routes/auth.js';
 import { inboundRouter } from './routes/inbound.js';
+import { billingRouter, stripeWebhookHandler } from './routes/billing.js';
 
 export function createApp(): Express {
   const app = express();
@@ -26,6 +27,10 @@ export function createApp(): Express {
   app.use(helmet({ contentSecurityPolicy: false }));
   app.use(cors({ credentials: true, origin: true }));
   app.use(cookieParser());
+
+  // Webhook Stripe : corps BRUT requis pour vérifier la signature → AVANT json().
+  app.post('/api/billing/webhook', express.raw({ type: 'application/json' }), stripeWebhookHandler);
+
   app.use(express.json({ limit: '2mb' }));
   app.use(express.urlencoded({ extended: true, limit: '2mb' }));
   app.use(express.text({ type: 'text/csv', limit: '2mb' }));
@@ -61,6 +66,7 @@ export function createApp(): Express {
   app.use('/api/subscriptions', requireAuth, subscriptionsRouter);
   app.use('/api/reminders', requireAuth, remindersRouter);
   app.use('/api/insights', requireAuth, insightsRouter);
+  app.use('/api/billing', requireAuth, billingRouter);
   app.use('/api', requireAuth, dataioRouter);
 
   // Frontend statique (production) : sert frontend/dist si présent.

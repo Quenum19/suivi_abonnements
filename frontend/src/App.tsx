@@ -8,6 +8,7 @@ import { SubscriptionModal } from './components/SubscriptionModal';
 import { HistoryDrawer } from './components/HistoryDrawer';
 import { InsightsDrawer } from './components/InsightsDrawer';
 import { PasteInvoiceModal } from './components/PasteInvoiceModal';
+import { PlanModal } from './components/PlanModal';
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -25,6 +26,7 @@ export default function App() {
   const [editing, setEditing] = useState<Subscription | null>(null);
   const [draft, setDraft] = useState<Partial<SubscriptionInput> | null>(null);
   const [pasteOpen, setPasteOpen] = useState(false);
+  const [planOpen, setPlanOpen] = useState(false);
 
   const [config, setConfig] = useState<ReminderConfig | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -71,13 +73,6 @@ export default function App() {
     setSubs([]);
   }
 
-  if (!authReady) {
-    return <div className="flex min-h-screen items-center justify-center text-muted">Chargement…</div>;
-  }
-  if (!session) {
-    return <AuthScreen onAuth={setSession} />;
-  }
-
   // Filtrage client (la recherche serveur existe aussi ; ici instantané).
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -105,6 +100,14 @@ export default function App() {
     () => [...new Set(subs.map((s) => s.category))].sort((a, b) => a.localeCompare(b, 'fr')),
     [subs],
   );
+
+  // Garde d'authentification (après tous les hooks → règles des Hooks respectées).
+  if (!authReady) {
+    return <div className="flex min-h-screen items-center justify-center text-muted">Chargement…</div>;
+  }
+  if (!session) {
+    return <AuthScreen onAuth={setSession} />;
+  }
 
   async function handleSave(input: SubscriptionInput) {
     if (editing) {
@@ -170,12 +173,12 @@ export default function App() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <div className="hidden text-right sm:block">
+          <button onClick={() => setPlanOpen(true)} className="hidden text-right sm:block">
             <div className="text-sm font-semibold">{session.organization.name}</div>
-            <div className="text-[11px] uppercase tracking-wide text-muted">
+            <div className="text-[11px] uppercase tracking-wide text-brand underline">
               plan {session.organization.plan}
             </div>
-          </div>
+          </button>
           <button
             onClick={() => {
               setEditing(null);
@@ -308,6 +311,13 @@ export default function App() {
           setPasteOpen(false);
           setModalOpen(true);
         }}
+      />
+
+      <PlanModal
+        open={planOpen}
+        onClose={() => setPlanOpen(false)}
+        onToast={showToast}
+        onChanged={() => api.me().then(setSession).catch(() => undefined)}
       />
 
       <HistoryDrawer

@@ -54,6 +54,31 @@ Docker fait tourner l'API, le cron et le frontend.
 - 🤖 **Intégration continue** : workflow GitHub Actions ([.github/workflows/ci.yml](.github/workflows/ci.yml))
   — lint + tests + build à chaque push/PR.
 
+### Évolution SaaS (multi-tenant, cible PME francophones)
+
+1. 💡 **Couche Économies** — détection des **doublons** et des abonnements
+   **inutilisés**, projection coût mensuel/annuel par devise, et estimation des
+   **économies potentielles** (`GET /api/insights`). Champs `frequency` et
+   `status` (actif/inutilisé/annulé) sur chaque abonnement.
+2. 🟢 **Rappels WhatsApp** — le payload n8n est enrichi (`responsible`,
+   `whatsappTo`, `currency`, `frequency`) pour router le rappel vers WhatsApp et
+   relancer le **responsable** d'un abonnement.
+3. 🔐 **Multi-tenant + comptes** — `User` / `Organization` / `Membership`,
+   **sessions JWT** (cookie httpOnly), **isolation des données par organisation**
+   sur toutes les routes. Flux ICS par **jeton d'organisation**.
+4. 🧾 **Import de factures** — parser heuristique (montant, devise, date,
+   périodicité) : « coller une facture » dans l'UI (`POST /api/import/parse`) ou
+   **webhook entrant** `POST /api/inbound/:token` (SendGrid/Mailgun/n8n).
+5. 💳 **Plans & facturation** — plans **Free / Pro / Team**, **quotas** (nb
+   d'abonnements) et **gating des canaux** par plan, **Stripe Checkout + webhook**
+   (inerte sans clé) et **activation manuelle Mobile Money/virement**
+   (`/api/billing/*`).
+
+> SQLite par défaut ; **PostgreSQL** = changer `provider` + `DATABASE_URL`
+> (pour la prod, ajouter la Row-Level Security par `organizationId`).
+>
+> **Compte de démo** créé par le seed : `demo@local.test` / `password123`.
+
 ---
 
 ## Démarrage rapide (Docker — une commande)

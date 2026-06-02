@@ -56,6 +56,16 @@ const EnvSchema = z.object({
   // Numéro WhatsApp par défaut (au format international, ex. +2250700000000)
   // transmis dans le payload n8n pour router le rappel vers WhatsApp.
   WHATSAPP_TO: z.string().optional().default(''),
+
+  // ── Facturation ──
+  APP_URL: z.string().optional().default('http://localhost:4000'),
+  STRIPE_SECRET_KEY: z.string().optional().default(''),
+  STRIPE_WEBHOOK_SECRET: z.string().optional().default(''),
+  STRIPE_PRICE_PRO: z.string().optional().default(''),
+  STRIPE_PRICE_TEAM: z.string().optional().default(''),
+  // Active l'activation manuelle d'un plan (confirmation paiement Mobile Money,
+  // virement, etc.) par un owner. Off par défaut.
+  BILLING_ALLOW_MANUAL: boolish(false),
 });
 
 const parsed = EnvSchema.safeParse(process.env);
