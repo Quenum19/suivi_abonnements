@@ -1,9 +1,14 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { prisma } from '../db.js';
+import { env } from '../env.js';
 import { asyncHandler, HttpError } from '../lib/http.js';
 import { cookie, hashPassword, signSession, verifyPassword } from '../lib/auth.js';
 import { requireAuth } from '../middleware/auth.js';
+
+export function isSuperAdminEmail(email: string): boolean {
+  return env.SUPERADMIN_EMAILS.includes(email.toLowerCase());
+}
 
 export const authRouter = Router();
 
@@ -26,6 +31,10 @@ async function sessionResponse(userId: string) {
     orderBy: { createdAt: 'asc' },
   });
   if (!membership) throw new HttpError(500, 'Aucune organisation associée.');
+  const superAdmin = isSuperAdminEmail(membership.user.email);
+  if (membership.organization.status === 'suspended' && !superAdmin) {
+    throw new HttpError(403, 'Compte suspendu. Contactez le support.');
+  }
   const token = signSession({
     userId,
     organizationId: membership.organizationId,
@@ -34,13 +43,21 @@ async function sessionResponse(userId: string) {
   return {
     token,
     body: {
-      user: { id: membership.user.id, email: membership.user.email, name: membership.user.name },
+      user: {
+        id: membership.user.id,
+        email: membership.user.email,
+        name: membership.user.name,
+        isSuperAdmin: superAdmin,
+      },
       organization: {
         id: membership.organization.id,
         name: membership.organization.name,
         plan: membership.organization.plan,
         calendarToken: membership.organization.calendarToken,
         inboundToken: membership.organization.inboundToken,
+        logoUrl: membership.organization.logoUrl,
+        brandColor: membership.organization.brandColor,
+        status: membership.organization.status,
       },
       role: membership.role,
     },
@@ -86,6 +103,10 @@ authRouter.post(
     if (!user || !(await verifyPassword(input.password, user.passwordHash))) {
       throw new HttpError(401, 'E-mail ou mot de passe incorrect.');
     }
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { lastLoginAt: new Date(), loginCount: { increment: 1 } },
+    });
     const { token, body } = await sessionResponse(user.id);
     res.cookie(cookie.name, token, cookie.options);
     res.json({ data: body });

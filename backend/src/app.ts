@@ -18,6 +18,9 @@ import { insightsRouter } from './routes/insights.js';
 import { authRouter } from './routes/auth.js';
 import { inboundRouter } from './routes/inbound.js';
 import { billingRouter, stripeWebhookHandler } from './routes/billing.js';
+import { organizationRouter } from './routes/organization.js';
+import { adminRouter } from './routes/admin.js';
+import { requireSuperAdmin } from './middleware/admin.js';
 
 export function createApp(): Express {
   const app = express();
@@ -67,6 +70,8 @@ export function createApp(): Express {
   app.use('/api/reminders', requireAuth, remindersRouter);
   app.use('/api/insights', requireAuth, insightsRouter);
   app.use('/api/billing', requireAuth, billingRouter);
+  app.use('/api/organization', requireAuth, organizationRouter);
+  app.use('/api/admin', requireAuth, requireSuperAdmin, adminRouter);
   app.use('/api', requireAuth, dataioRouter);
 
   // Frontend statique (production) : sert frontend/dist si présent.

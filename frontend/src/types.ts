@@ -39,15 +39,50 @@ export interface SubscriptionInput {
 }
 
 export interface Session {
-  user: { id: string; email: string; name: string | null };
+  user: { id: string; email: string; name: string | null; isSuperAdmin: boolean };
   organization: {
     id: string;
     name: string;
     plan: 'free' | 'pro' | 'team';
     calendarToken: string;
     inboundToken: string;
+    logoUrl: string | null;
+    brandColor: string | null;
+    status: 'active' | 'suspended';
   };
   role: string;
+}
+
+export interface AdminOverview {
+  totals: { organizations: number; users: number; subscriptions: number; remindersSent: number };
+  byPlan: Record<string, number>;
+  suspended: number;
+  mrrEur: number;
+  activity: { activeUsers7d: number; activeUsers30d: number; newOrgs30d: number };
+}
+
+export interface AdminOrg {
+  id: string;
+  name: string;
+  plan: string;
+  status: 'active' | 'suspended';
+  ownerEmail: string | null;
+  subscriptions: number;
+  reminders: number;
+  members: number;
+  lastLoginAt: string | null;
+  loginCount: number;
+  createdAt: string;
+}
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  name: string | null;
+  organization: string | null;
+  loginCount: number;
+  lastLoginAt: string | null;
+  createdAt: string;
 }
 
 export interface BillingStatus {

@@ -12,12 +12,15 @@ datasource db {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
+  id           String    @id @default(cuid())
+  email        String    @unique
   passwordHash String
   name         String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  // Suivi d'activité (pour l'espace super-admin).
+  lastLoginAt  DateTime?
+  loginCount   Int       @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   memberships Membership[]
 
@@ -33,6 +36,11 @@ model Organization {
   calendarToken String   @unique @default(cuid())
   // Jeton secret pour l'email/webhook entrant d'import de factures.
   inboundToken  String   @unique @default(cuid())
+  // Personnalisation (marque blanche) : logo (URL ou data URL) + couleur d'accent.
+  logoUrl       String?
+  brandColor    String?
+  // État du compte : active | suspended (suspension par le super-admin).
+  status        String   @default("active")
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

@@ -66,6 +66,19 @@ const EnvSchema = z.object({
   // Active l'activation manuelle d'un plan (confirmation paiement Mobile Money,
   // virement, etc.) par un owner. Off par défaut.
   BILLING_ALLOW_MANUAL: boolish(false),
+
+  // ── Super-admin (exploitant de la plateforme) ──
+  // E-mails ayant accès à l'espace d'administration globale (séparés par virgule).
+  SUPERADMIN_EMAILS: z
+    .string()
+    .optional()
+    .default('')
+    .transform((s) =>
+      s
+        .split(',')
+        .map((e) => e.trim().toLowerCase())
+        .filter(Boolean),
+    ),
 });
 
 const parsed = EnvSchema.safeParse(process.env);

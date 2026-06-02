@@ -7,3 +7,4 @@ process.env.REMINDER_THRESHOLDS = '30,7,1';
 process.env.N8N_ENABLED = 'true';
 process.env.N8N_WEBHOOK_URL = 'http://localhost:9999/webhook-test';
 process.env.EMAIL_ENABLED = 'false';
+process.env.SUPERADMIN_EMAILS = 'root@admin.test';

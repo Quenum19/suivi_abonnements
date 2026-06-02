@@ -1,4 +1,7 @@
 import type {
+  AdminOrg,
+  AdminOverview,
+  AdminUser,
   BillingStatus,
   Insights,
   ParsedInvoice,
@@ -85,6 +88,23 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ items, replace }),
     }),
+
+  updateOrganization: (input: { name?: string; brandColor?: string | null; logoUrl?: string | null }) =>
+    request<{ id: string; name: string; plan: string; brandColor: string | null; logoUrl: string | null }>(
+      '/organization',
+      { method: 'PUT', body: JSON.stringify(input) },
+    ),
+
+  // ── Super-admin ──
+  adminOverview: () => request<AdminOverview>('/admin/overview'),
+  adminOrgs: (sort = 'subs') => request<AdminOrg[]>(`/admin/organizations?sort=${sort}`),
+  adminUsers: (sort = 'logins') => request<AdminUser[]>(`/admin/users?sort=${sort}`),
+  adminPatchOrg: (id: string, input: { plan?: string; status?: string }) =>
+    request<{ id: string; plan: string; status: string }>(`/admin/organizations/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    }),
+  adminOrgsCsvUrl: () => `${BASE}/api/admin/organizations.csv`,
 
   billingPlans: () => request<PlanCatalog>('/billing/plans'),
   billingStatus: () => request<BillingStatus>('/billing/status'),

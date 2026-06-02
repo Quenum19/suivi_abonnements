@@ -9,6 +9,9 @@ import { HistoryDrawer } from './components/HistoryDrawer';
 import { InsightsDrawer } from './components/InsightsDrawer';
 import { PasteInvoiceModal } from './components/PasteInvoiceModal';
 import { PlanModal } from './components/PlanModal';
+import { SettingsModal } from './components/SettingsModal';
+import { AdminDashboard } from './components/AdminDashboard';
+import { applyBranding } from './lib/branding';
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -27,6 +30,8 @@ export default function App() {
   const [draft, setDraft] = useState<Partial<SubscriptionInput> | null>(null);
   const [pasteOpen, setPasteOpen] = useState(false);
   const [planOpen, setPlanOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [adminOpen, setAdminOpen] = useState(false);
 
   const [config, setConfig] = useState<ReminderConfig | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -66,6 +71,11 @@ export default function App() {
     api.reminderConfig().then(setConfig).catch(() => undefined);
     load();
   }, [session, load]);
+
+  // Applique la couleur de marque de l'organisation.
+  useEffect(() => {
+    applyBranding(session?.organization.brandColor ?? null);
+  }, [session]);
 
   async function handleLogout() {
     await api.logout().catch(() => undefined);
@@ -161,15 +171,24 @@ export default function App() {
   return (
     <div className="mx-auto max-w-[880px] px-4 pb-20 pt-7">
       <header className="mb-2 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <div className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-brand">
-            Tableau de bord
-          </div>
-          <h1 className="font-display text-[38px] font-semibold leading-none tracking-tight">
-            Échéances d'abonnements
-          </h1>
-          <div className="mt-1.5 text-sm text-muted">
-            Suivi des dates de renouvellement de tes comptes
+        <div className="flex items-center gap-3">
+          {session.organization.logoUrl && (
+            <img
+              src={session.organization.logoUrl}
+              alt="logo"
+              className="h-12 w-12 rounded-xl border border-line object-contain bg-card p-1"
+            />
+          )}
+          <div>
+            <div className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-brand">
+              Tableau de bord
+            </div>
+            <h1 className="font-display text-[38px] font-semibold leading-none tracking-tight">
+              Échéances d'abonnements
+            </h1>
+            <div className="mt-1.5 text-sm text-muted">
+              Suivi des dates de renouvellement de tes comptes
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -178,6 +197,22 @@ export default function App() {
             <div className="text-[11px] uppercase tracking-wide text-brand underline">
               plan {session.organization.plan}
             </div>
+          </button>
+          {session.user.isSuperAdmin && (
+            <button
+              onClick={() => setAdminOpen(true)}
+              title="Console admin"
+              className="rounded-xl border border-brand bg-brand-soft px-3 py-3 text-sm font-semibold text-brand"
+            >
+              ★ Admin
+            </button>
+          )}
+          <button
+            onClick={() => setSettingsOpen(true)}
+            title="Personnalisation"
+            className="rounded-xl border border-line bg-card px-3 py-3 text-sm text-muted transition hover:border-muted hover:text-ink"
+          >
+            ⚙
           </button>
           <button
             onClick={() => {
@@ -319,6 +354,16 @@ export default function App() {
         onToast={showToast}
         onChanged={() => api.me().then(setSession).catch(() => undefined)}
       />
+
+      <SettingsModal
+        open={settingsOpen}
+        session={session}
+        onClose={() => setSettingsOpen(false)}
+        onToast={showToast}
+        onSaved={() => api.me().then(setSession).catch(() => undefined)}
+      />
+
+      {adminOpen && <AdminDashboard onClose={() => setAdminOpen(false)} onToast={showToast} />}
 
       <HistoryDrawer
         open={historyOpen}
