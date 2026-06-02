@@ -22,6 +22,7 @@ const empty: SubscriptionInput = {
   frequency: 'yearly',
   status: 'active',
   responsible: '',
+  autoRenew: false,
 };
 
 const FREQ_OPTIONS: { value: SubscriptionInput['frequency']; label: string }[] = [
@@ -59,6 +60,7 @@ export function SubscriptionModal({ open, editing, initial, categories, onClose,
         frequency: editing.frequency,
         status: editing.lifecycle,
         responsible: editing.responsible ?? '',
+        autoRenew: editing.autoRenew,
         amountStr: editing.amount != null ? String(editing.amount) : '',
       });
     } else {
@@ -105,6 +107,7 @@ export function SubscriptionModal({ open, editing, initial, categories, onClose,
         frequency: form.frequency,
         status: form.status,
         responsible: form.responsible?.trim() || null,
+        autoRenew: form.autoRenew,
       });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erreur lors de l’enregistrement.');
@@ -220,6 +223,18 @@ export function SubscriptionModal({ open, editing, initial, categories, onClose,
             </select>
           </Field>
         </div>
+        <label className="mb-3.5 flex cursor-pointer items-center gap-2.5 rounded-[10px] border border-line bg-paper px-3 py-2.5">
+          <input
+            type="checkbox"
+            checked={form.autoRenew}
+            onChange={(e) => setForm((f) => ({ ...f, autoRenew: e.target.checked }))}
+            className="h-4 w-4 accent-brand"
+          />
+          <span className="text-sm">
+            <b>Renouvellement automatique</b> — avance l'échéance d'une période quand elle passe
+          </span>
+        </label>
+
         <Field label="Responsable / relance (facultatif)">
           <input
             className={inputCls}

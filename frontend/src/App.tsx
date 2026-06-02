@@ -61,14 +61,22 @@ export default function App() {
     }
   }, []);
 
-  // Vérifie la session au démarrage.
+  // Vérifie la session au démarrage. Le super-admin atterrit sur la console.
   useEffect(() => {
     api
       .me()
-      .then(setSession)
+      .then((s) => {
+        setSession(s);
+        if (s.user.isSuperAdmin) setAdminOpen(true);
+      })
       .catch(() => setSession(null))
       .finally(() => setAuthReady(true));
   }, []);
+
+  function handleAuth(s: typeof session) {
+    setSession(s);
+    if (s?.user.isSuperAdmin) setAdminOpen(true);
+  }
 
   // Charge les données une fois connecté.
   useEffect(() => {
@@ -121,7 +129,7 @@ export default function App() {
     return <div className="flex min-h-screen items-center justify-center text-muted">Chargement…</div>;
   }
   if (!session) {
-    return <AuthScreen onAuth={setSession} />;
+    return <AuthScreen onAuth={handleAuth} />;
   }
 
   async function handleSave(input: SubscriptionInput) {
@@ -278,6 +286,9 @@ export default function App() {
         </a>
         <a href={api.exportUrl('csv')}>
           <ToolbarButton>⬇ CSV</ToolbarButton>
+        </a>
+        <a href={api.reportPdfUrl()} target="_blank" rel="noreferrer">
+          <ToolbarButton>📄 PDF</ToolbarButton>
         </a>
         <ToolbarButton onClick={() => setPasteOpen(true)}>🧾 Facture</ToolbarButton>
         <ToolbarButton onClick={() => fileRef.current?.click()}>⬆ Importer</ToolbarButton>

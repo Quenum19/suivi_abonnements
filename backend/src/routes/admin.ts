@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import PDFDocument from 'pdfkit';
 import { prisma } from '../db.js';
 import { asyncHandler, HttpError } from '../lib/http.js';
 import { PLANS, planOf, type Plan } from '../services/billing.js';
@@ -39,11 +40,16 @@ adminRouter.get(
       mrr += (PLAN_PRICE_EUR[(g.plan as Plan) in PLANS ? (g.plan as Plan) : 'free'] ?? 0) * g._count._all;
     }
     const suspended = await prisma.organization.count({ where: { status: 'suspended' } });
+    const revenueByPlan = {
+      pro: (byPlan.pro || 0) * PLAN_PRICE_EUR.pro,
+      team: (byPlan.team || 0) * PLAN_PRICE_EUR.team,
+    };
 
     res.json({
       data: {
         totals: { organizations: orgs, users, subscriptions: subs, remindersSent: reminders },
         byPlan,
+        revenueByPlan,
         suspended,
         mrrEur: mrr,
         activity: { activeUsers7d: activeUsers7, activeUsers30d: activeUsers30, newOrgs30d: newOrgs30 },
@@ -142,6 +148,42 @@ adminRouter.get(
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', 'attachment; filename="clients.csv"');
     res.send(toCsv(rows));
+  }),
+);
+
+// GET /api/admin/organizations.pdf — rapport clients en PDF.
+adminRouter.get(
+  '/organizations.pdf',
+  asyncHandler(async (_req, res) => {
+    const [orgs, totalUsers, totalSubs] = await Promise.all([
+      prisma.organization.findMany({
+        include: { _count: { select: { subscriptions: true, memberships: true } } },
+        orderBy: { createdAt: 'asc' },
+      }),
+      prisma.user.count(),
+      prisma.subscription.count(),
+    ]);
+    let mrr = 0;
+    for (const o of orgs) mrr += PLAN_PRICE_EUR[(o.plan as Plan) in PLANS ? (o.plan as Plan) : 'free'];
+
+    const doc = new PDFDocument({ size: 'A4', margin: 44 });
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'attachment; filename="rapport-clients.pdf"');
+    doc.pipe(res);
+
+    doc.fontSize(22).fillColor('#1F4D46').text('Rapport plateforme');
+    doc.fontSize(11).fillColor('#6E685D').text(`${orgs.length} entreprise(s) · ${totalUsers} utilisateur(s) · ${totalSubs} abonnement(s) · MRR estimé ${mrr} €`);
+    doc.moveDown();
+
+    doc.fontSize(14).fillColor('#1B1A17').text('Clients');
+    doc.moveDown(0.4);
+    for (const o of orgs) {
+      doc.fontSize(10).fillColor('#1B1A17').text(`${o.name}`, { continued: true })
+        .fillColor('#6E685D').text(`  (${o.plan}${o.status === 'suspended' ? ', suspendu' : ''})`);
+      doc.fontSize(9).fillColor('#444444').text(`  ${o._count.subscriptions} abonnement(s) · ${o._count.memberships} membre(s) · créé le ${o.createdAt.toISOString().slice(0, 10)}`);
+      doc.moveDown(0.3);
+    }
+    doc.end();
   }),
 );
 

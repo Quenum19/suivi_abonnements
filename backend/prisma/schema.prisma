@@ -46,6 +46,8 @@ model Organization {
   exchangeRates String?
   // État du compte : active | suspended (suspension par le super-admin).
   status        String   @default("active")
+  // Identifiant lisible pour l'URL de connexion personnalisée (/?org=slug).
+  slug          String?  @unique
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -88,6 +90,8 @@ model Subscription {
   status     String   @default("active")
   // Personne/contact à relancer (nom, e-mail ou n° WhatsApp) — routage des rappels.
   responsible String?
+  // Renouvellement automatique : avance l'échéance d'une période quand elle passe.
+  autoRenew  Boolean  @default(false)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 

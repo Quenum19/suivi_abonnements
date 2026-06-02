@@ -37,6 +37,13 @@ export function AdminDashboard({ onClose, onToast }: { onClose: () => void; onTo
 
   return (
     <div className="fixed inset-0 z-50 overflow-auto bg-paper">
+      {/* Bandeau : on ne confond jamais admin et espace entreprise. */}
+      <div className="sticky top-0 z-10 flex items-center justify-between bg-ink px-4 py-2 text-paper">
+        <span className="text-[13px] font-semibold">🛡️ Mode administrateur plateforme</span>
+        <button onClick={onClose} className="text-[13px] underline opacity-90 hover:opacity-100">
+          Quitter → mon espace entreprise
+        </button>
+      </div>
       <div className="mx-auto max-w-[1100px] px-4 py-6">
         <header className="mb-6 flex items-center justify-between">
           <div>
@@ -58,6 +65,36 @@ export function AdminDashboard({ onClose, onToast }: { onClose: () => void; onTo
             <Stat label="Utilisateurs" value={ov.totals.users} sub={`${ov.activity.activeUsers7d} actifs / 7j`} />
             <Stat label="Abonnements suivis" value={ov.totals.subscriptions} sub={`${ov.totals.remindersSent} rappels envoyés`} />
             <Stat label="MRR estimé" value={`${ov.mrrEur} €`} sub={`${ov.byPlan.pro || 0} Pro · ${ov.byPlan.team || 0} Team`} />
+          </div>
+        )}
+
+        {/* Revenus estimés par plan */}
+        {ov && (ov.revenueByPlan.pro > 0 || ov.revenueByPlan.team > 0 || true) && (
+          <div className="mt-4 rounded-2xl border border-line bg-card p-4">
+            <div className="mb-3 text-[12px] font-semibold uppercase tracking-wide text-muted">
+              Revenu mensuel estimé par plan (€)
+            </div>
+            <div className="flex items-end gap-6" style={{ height: 90 }}>
+              {(['pro', 'team'] as const).map((p) => {
+                const val = ov.revenueByPlan[p];
+                const max = Math.max(1, ov.revenueByPlan.pro, ov.revenueByPlan.team);
+                return (
+                  <div key={p} className="flex flex-1 flex-col items-center justify-end gap-1">
+                    <div className="text-[12px] font-semibold text-ink">{val} €</div>
+                    <div
+                      className="w-16 rounded-t bg-brand"
+                      style={{ height: `${(val / max) * 60}px`, minHeight: val ? 4 : 0 }}
+                    />
+                    <div className="text-[11px] uppercase text-muted">{p}</div>
+                  </div>
+                );
+              })}
+              <div className="flex flex-1 flex-col items-center justify-end gap-1">
+                <div className="text-[12px] font-semibold text-brand">{ov.mrrEur} €</div>
+                <div className="w-16 rounded-t bg-safe" style={{ height: '60px' }} />
+                <div className="text-[11px] uppercase text-muted">MRR total</div>
+              </div>
+            </div>
           </div>
         )}
 
@@ -107,6 +144,14 @@ export function AdminDashboard({ onClose, onToast }: { onClose: () => void; onTo
                 className="rounded-lg border border-line bg-card px-3 py-1.5 text-sm font-medium hover:border-muted"
               >
                 ⬇ CSV
+              </a>
+              <a
+                href={api.adminOrgsPdfUrl()}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-lg border border-line bg-card px-3 py-1.5 text-sm font-medium hover:border-muted"
+              >
+                ⬇ PDF
               </a>
             </>
           )}

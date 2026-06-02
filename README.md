@@ -86,6 +86,14 @@ Docker fait tourner l'API, le cron et le frontend.
    organisation → **coût total unique** (ex. tout en FCFA) dans la couche Économies.
 10. 🔔 **Notifications in-app** — cloche avec badge : échéances proches, abos
     inutilisés, quota de plan atteint (`/api/notifications`).
+11. 🪪 **Connexion personnalisée par entreprise** — URL `/?org=<slug>` affichant
+    le logo et la couleur du client (`/api/public/org/:slug`).
+12. 🛡️ **Accueil & bandeau super-admin** — atterrissage direct sur la console
+    plateforme + **graphique de revenus par plan** ; bandeau distinctif.
+13. ↻ **Renouvellement automatique** — `autoRenew` avance l'échéance d'une période
+    quand elle passe et **réarme les rappels** (scheduler + au déclenchement manuel).
+14. 📄 **Export PDF** — rapport d'abonnements (`/api/report`) et rapport clients
+    super-admin (`/api/admin/organizations.pdf`).
 
 > SQLite par défaut ; **PostgreSQL** = changer `provider` + `DATABASE_URL`
 > (pour la prod, ajouter la Row-Level Security par `organizationId`).

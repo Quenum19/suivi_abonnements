@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '../db.js';
 import { runRemindersSchema } from '../schemas.js';
 import { runReminders } from '../services/reminders.js';
+import { rollAutoRenewals } from '../services/autorenew.js';
 import { enabledChannels, notify, samplePayload, type Channel } from '../services/notifier.js';
 import { allowedChannelsForPlan, planOf } from '../services/billing.js';
 import { env } from '../env.js';
@@ -29,7 +30,9 @@ remindersRouter.post(
   '/run',
   asyncHandler(async (req, res) => {
     const { asOf, dryRun } = runRemindersSchema.parse(req.body ?? {});
-    const result = await runReminders({ asOf, dryRun, organizationId: req.auth!.organizationId });
+    const orgId = req.auth!.organizationId;
+    if (!dryRun) await rollAutoRenewals(asOf, orgId); // renouvelle avant de rappeler
+    const result = await runReminders({ asOf, dryRun, organizationId: orgId });
     res.json({ data: result });
   }),
 );

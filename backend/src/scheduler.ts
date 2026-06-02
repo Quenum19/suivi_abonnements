@@ -1,6 +1,7 @@
 import cron from 'node-cron';
 import { env } from './env.js';
 import { runReminders } from './services/reminders.js';
+import { rollAutoRenewals } from './services/autorenew.js';
 
 let task: cron.ScheduledTask | null = null;
 
@@ -19,6 +20,8 @@ export function startScheduler(): void {
     env.REMINDER_CRON,
     async () => {
       try {
+        const renew = await rollAutoRenewals();
+        if (renew.renewed) console.log(`🔄 Renouvellements auto : ${renew.renewed} abonnement(s).`);
         const r = await runReminders();
         console.log(
           `🔔 Rappels [${r.asOf}] : ${r.sent.length} envoyé(s), ${r.skipped} ignoré(s), ${r.errors.length} erreur(s).`,

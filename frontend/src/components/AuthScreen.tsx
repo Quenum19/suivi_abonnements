@@ -1,6 +1,7 @@
-import { useState } from 'react';
-import type { Session } from '../types';
+import { useEffect, useState } from 'react';
+import type { PublicBrand, Session } from '../types';
 import { ApiError, api } from '../api';
+import { applyBranding } from '../lib/branding';
 
 export function AuthScreen({ onAuth }: { onAuth: (s: Session) => void }) {
   const [mode, setMode] = useState<'login' | 'register'>('login');
@@ -9,6 +10,20 @@ export function AuthScreen({ onAuth }: { onAuth: (s: Session) => void }) {
   const [orgName, setOrgName] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [brand, setBrand] = useState<PublicBrand | null>(null);
+
+  // Page de connexion personnalisée : /?org=<slug>.
+  useEffect(() => {
+    const slug = new URLSearchParams(window.location.search).get('org');
+    if (!slug) return;
+    api
+      .publicOrg(slug)
+      .then((b) => {
+        setBrand(b);
+        applyBranding(b.brandColor);
+      })
+      .catch(() => undefined);
+  }, []);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -31,8 +46,15 @@ export function AuthScreen({ onAuth }: { onAuth: (s: Session) => void }) {
     <div className="flex min-h-screen items-center justify-center p-5">
       <div className="w-full max-w-[400px]">
         <div className="mb-6 text-center">
+          {brand?.logoUrl && (
+            <img
+              src={brand.logoUrl}
+              alt="logo"
+              className="mx-auto mb-3 h-16 w-16 rounded-2xl border border-line bg-card object-contain p-1"
+            />
+          )}
           <div className="text-xs font-semibold uppercase tracking-[0.18em] text-brand">
-            Suivi des abonnements
+            {brand?.name ?? 'Suivi des abonnements'}
           </div>
           <h1 className="mt-1 font-display text-3xl font-semibold">
             {mode === 'login' ? 'Connexion' : 'Créer un compte'}

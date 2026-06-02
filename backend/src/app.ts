@@ -21,6 +21,8 @@ import { billingRouter, stripeWebhookHandler } from './routes/billing.js';
 import { organizationRouter } from './routes/organization.js';
 import { teamRouter } from './routes/team.js';
 import { notificationsRouter } from './routes/notifications.js';
+import { publicRouter } from './routes/public.js';
+import { reportRouter } from './routes/report.js';
 import { adminRouter } from './routes/admin.js';
 import { requireSuperAdmin } from './middleware/admin.js';
 
@@ -61,6 +63,9 @@ export function createApp(): Express {
   // Authentification (public)
   app.use('/api/auth', authRouter);
 
+  // Marque publique d'organisation (page de connexion personnalisée).
+  app.use('/api/public', publicRouter);
+
   // Import de facture par email/webhook entrant (public via jeton d'org).
   app.use('/api/inbound', inboundRouter);
 
@@ -75,6 +80,7 @@ export function createApp(): Express {
   app.use('/api/organization', requireAuth, organizationRouter);
   app.use('/api/team', requireAuth, teamRouter);
   app.use('/api/notifications', requireAuth, notificationsRouter);
+  app.use('/api/report', requireAuth, reportRouter);
   app.use('/api/admin', requireAuth, requireSuperAdmin, adminRouter);
   app.use('/api', requireAuth, dataioRouter);
 

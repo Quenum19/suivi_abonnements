@@ -8,6 +8,7 @@ import type {
   Insights,
   ParsedInvoice,
   PlanCatalog,
+  PublicBrand,
   ReminderConfig,
   ReminderHistoryEntry,
   Session,
@@ -49,6 +50,9 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 }
 
 export const api = {
+  // ── Public (login personnalisé) ──
+  publicOrg: (slug: string) => request<PublicBrand>(`/public/org/${encodeURIComponent(slug)}`),
+
   // ── Auth ──
   register: (input: { email: string; password: string; organizationName?: string; name?: string }) =>
     request<Session>('/auth/register', { method: 'POST', body: JSON.stringify(input) }),
@@ -136,6 +140,8 @@ export const api = {
       body: JSON.stringify(input),
     }),
   adminOrgsCsvUrl: () => `${BASE}/api/admin/organizations.csv`,
+  adminOrgsPdfUrl: () => `${BASE}/api/admin/organizations.pdf`,
+  reportPdfUrl: () => `${BASE}/api/report`,
 
   billingPlans: () => request<PlanCatalog>('/billing/plans'),
   billingStatus: () => request<BillingStatus>('/billing/status'),

@@ -4,6 +4,7 @@ import { prisma } from '../db.js';
 import { env } from '../env.js';
 import { asyncHandler, HttpError } from '../lib/http.js';
 import { cookie, hashPassword, signSession, verifyPassword } from '../lib/auth.js';
+import { uniqueSlug } from '../lib/slug.js';
 import { requireAuth } from '../middleware/auth.js';
 
 export function isSuperAdminEmail(email: string): boolean {
@@ -60,6 +61,7 @@ async function sessionResponse(userId: string) {
         status: membership.organization.status,
         baseCurrency: membership.organization.baseCurrency,
         exchangeRates: membership.organization.exchangeRates,
+        slug: membership.organization.slug,
       },
       role: membership.role,
     },
@@ -74,6 +76,8 @@ authRouter.post(
     const exists = await prisma.user.findUnique({ where: { email: input.email } });
     if (exists) throw new HttpError(409, 'Un compte existe déjà avec cet e-mail.');
 
+    const orgName = input.organizationName || `Espace de ${input.email}`;
+    const slug = await uniqueSlug(orgName);
     const user = await prisma.user.create({
       data: {
         email: input.email,
@@ -82,9 +86,7 @@ authRouter.post(
         memberships: {
           create: {
             role: 'owner',
-            organization: {
-              create: { name: input.organizationName || `Espace de ${input.email}` },
-            },
+            organization: { create: { name: orgName, slug } },
           },
         },
       },

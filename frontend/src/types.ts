@@ -14,6 +14,7 @@ export interface Subscription {
   frequency: Frequency;
   lifecycle: Lifecycle;
   responsible: string | null;
+  autoRenew: boolean;
   createdAt: string;
   updatedAt: string;
   // Champs calculés renvoyés par le serveur :
@@ -36,6 +37,7 @@ export interface SubscriptionInput {
   frequency: Frequency;
   status: Lifecycle;
   responsible: string | null;
+  autoRenew: boolean;
 }
 
 export interface Session {
@@ -51,8 +53,15 @@ export interface Session {
     status: 'active' | 'suspended';
     baseCurrency: string | null;
     exchangeRates: string | null;
+    slug: string | null;
   };
   role: string;
+}
+
+export interface PublicBrand {
+  name: string;
+  logoUrl: string | null;
+  brandColor: string | null;
 }
 
 export interface AppNotification {
@@ -66,6 +75,7 @@ export interface AppNotification {
 export interface AdminOverview {
   totals: { organizations: number; users: number; subscriptions: number; remindersSent: number };
   byPlan: Record<string, number>;
+  revenueByPlan: { pro: number; team: number };
   suspended: number;
   mrrEur: number;
   activity: { activeUsers7d: number; activeUsers30d: number; newOrgs30d: number };

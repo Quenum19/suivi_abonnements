@@ -39,6 +39,11 @@ export function SubscriptionCard({
               Annulé
             </span>
           )}
+          {sub.autoRenew && (
+            <span className="rounded-full bg-brand-soft px-2 py-0.5 text-[11px] font-bold text-brand">
+              ↻ Auto
+            </span>
+          )}
         </div>
         <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-muted">
           <span>

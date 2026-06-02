@@ -22,6 +22,7 @@ export const createSubscriptionSchema = z.object({
     .default('yearly'),
   status: z.enum(['active', 'unused', 'cancelled']).default('active'),
   responsible: z.string().trim().max(200).nullable().optional(),
+  autoRenew: z.boolean().optional().default(false),
 });
 
 // Tous les champs deviennent optionnels pour PATCH/PUT.
