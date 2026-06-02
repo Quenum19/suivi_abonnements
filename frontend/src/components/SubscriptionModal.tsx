@@ -5,6 +5,7 @@ import { SUPPORTED_CURRENCIES } from '../lib/currency';
 interface Props {
   open: boolean;
   editing: Subscription | null;
+  initial?: Partial<SubscriptionInput> | null;
   categories: string[];
   onClose: () => void;
   onSave: (input: SubscriptionInput) => Promise<void>;
@@ -37,7 +38,7 @@ const STATUS_OPTIONS: { value: SubscriptionInput['status']; label: string }[] = 
   { value: 'cancelled', label: 'Annulé' },
 ];
 
-export function SubscriptionModal({ open, editing, categories, onClose, onSave }: Props) {
+export function SubscriptionModal({ open, editing, initial, categories, onClose, onSave }: Props) {
   const [form, setForm] = useState<SubscriptionInput & { amountStr: string }>({
     ...empty,
     amountStr: '',
@@ -61,10 +62,19 @@ export function SubscriptionModal({ open, editing, categories, onClose, onSave }
         amountStr: editing.amount != null ? String(editing.amount) : '',
       });
     } else {
-      setForm({ ...empty, amountStr: '' });
+      const i = initial ?? {};
+      setForm({
+        ...empty,
+        ...i,
+        startDate: i.startDate ?? '',
+        currency: i.currency ?? '',
+        notes: i.notes ?? '',
+        responsible: i.responsible ?? '',
+        amountStr: i.amount != null ? String(i.amount) : '',
+      });
     }
     setError('');
-  }, [editing, open]);
+  }, [editing, initial, open]);
 
   if (!open) return null;
 

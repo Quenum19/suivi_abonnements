@@ -16,6 +16,7 @@ import { dataioRouter } from './routes/dataio.js';
 import { calendarRouter } from './routes/calendar.js';
 import { insightsRouter } from './routes/insights.js';
 import { authRouter } from './routes/auth.js';
+import { inboundRouter } from './routes/inbound.js';
 
 export function createApp(): Express {
   const app = express();
@@ -26,6 +27,7 @@ export function createApp(): Express {
   app.use(cors({ credentials: true, origin: true }));
   app.use(cookieParser());
   app.use(express.json({ limit: '2mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '2mb' }));
   app.use(express.text({ type: 'text/csv', limit: '2mb' }));
   if (env.NODE_ENV !== 'test') app.use(morgan('dev'));
 
@@ -48,6 +50,9 @@ export function createApp(): Express {
 
   // Authentification (public)
   app.use('/api/auth', authRouter);
+
+  // Import de facture par email/webhook entrant (public via jeton d'org).
+  app.use('/api/inbound', inboundRouter);
 
   // Flux calendrier ICS — public via jeton d'organisation (/api/calendar/:token.ics).
   app.use('/api/calendar', calendarRouter);

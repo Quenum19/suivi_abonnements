@@ -31,6 +31,8 @@ model Organization {
   plan          String   @default("free")
   // Jeton secret pour l'URL d'abonnement au calendrier ICS (public mais opaque).
   calendarToken String   @unique @default(cuid())
+  // Jeton secret pour l'email/webhook entrant d'import de factures.
+  inboundToken  String   @unique @default(cuid())
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

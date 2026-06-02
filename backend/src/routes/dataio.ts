@@ -3,6 +3,7 @@ import { prisma } from '../db.js';
 import { CSV_COLUMNS, parseCsv, toCsv } from '../lib/csv.js';
 import { createSubscriptionSchema, importSchema } from '../schemas.js';
 import { asyncHandler, HttpError } from '../lib/http.js';
+import { parseInvoice } from '../lib/invoiceParser.js';
 
 export const dataioRouter = Router();
 
@@ -80,6 +81,16 @@ dataioRouter.post(
     });
     const count = await importItems(req.auth!.organizationId, items, replace);
     res.json({ data: { imported: count, replaced: replace } });
+  }),
+);
+
+// POST /api/import/parse — analyse un texte de facture (sans enregistrer).
+dataioRouter.post(
+  '/import/parse',
+  asyncHandler(async (req, res) => {
+    const { subject, body, text } = req.body ?? {};
+    const draft = parseInvoice({ subject, body, text });
+    res.json({ data: draft });
   }),
 );
 

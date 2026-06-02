@@ -40,8 +40,23 @@ export interface SubscriptionInput {
 
 export interface Session {
   user: { id: string; email: string; name: string | null };
-  organization: { id: string; name: string; plan: 'free' | 'pro' | 'team'; calendarToken: string };
+  organization: {
+    id: string;
+    name: string;
+    plan: 'free' | 'pro' | 'team';
+    calendarToken: string;
+    inboundToken: string;
+  };
   role: string;
+}
+
+export interface ParsedInvoice {
+  name: string | null;
+  amount: number | null;
+  currency: string | null;
+  expiryDate: string | null;
+  frequency: Frequency | null;
+  confidence: number;
 }
 
 export interface Insights {

@@ -7,6 +7,7 @@ import { SubscriptionCard } from './components/SubscriptionCard';
 import { SubscriptionModal } from './components/SubscriptionModal';
 import { HistoryDrawer } from './components/HistoryDrawer';
 import { InsightsDrawer } from './components/InsightsDrawer';
+import { PasteInvoiceModal } from './components/PasteInvoiceModal';
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -22,6 +23,8 @@ export default function App() {
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Subscription | null>(null);
+  const [draft, setDraft] = useState<Partial<SubscriptionInput> | null>(null);
+  const [pasteOpen, setPasteOpen] = useState(false);
 
   const [config, setConfig] = useState<ReminderConfig | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -176,6 +179,7 @@ export default function App() {
           <button
             onClick={() => {
               setEditing(null);
+              setDraft(null);
               setModalOpen(true);
             }}
             className="inline-flex items-center gap-2 whitespace-nowrap rounded-xl bg-brand px-[18px] py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:brightness-110"
@@ -224,6 +228,7 @@ export default function App() {
         <a href={api.exportUrl('csv')}>
           <ToolbarButton>⬇ CSV</ToolbarButton>
         </a>
+        <ToolbarButton onClick={() => setPasteOpen(true)}>🧾 Facture</ToolbarButton>
         <ToolbarButton onClick={() => fileRef.current?.click()}>⬆ Importer</ToolbarButton>
         <input ref={fileRef} type="file" accept=".json,application/json" hidden onChange={handleImport} />
       </div>
@@ -282,12 +287,27 @@ export default function App() {
       <SubscriptionModal
         open={modalOpen}
         editing={editing}
+        initial={draft}
         categories={allCategories}
         onClose={() => {
           setModalOpen(false);
           setEditing(null);
+          setDraft(null);
         }}
         onSave={handleSave}
+      />
+
+      <PasteInvoiceModal
+        open={pasteOpen}
+        session={session}
+        onClose={() => setPasteOpen(false)}
+        onToast={showToast}
+        onParsed={(d) => {
+          setEditing(null);
+          setDraft(d);
+          setPasteOpen(false);
+          setModalOpen(true);
+        }}
       />
 
       <HistoryDrawer

@@ -1,5 +1,6 @@
 import type {
   Insights,
+  ParsedInvoice,
   ReminderConfig,
   ReminderHistoryEntry,
   Session,
@@ -73,6 +74,9 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ channel }),
     }),
+
+  parseInvoice: (text: string) =>
+    request<ParsedInvoice>('/import/parse', { method: 'POST', body: JSON.stringify({ text }) }),
 
   importJson: (items: SubscriptionInput[], replace: boolean) =>
     request<{ imported: number }>('/import', {

@@ -40,6 +40,7 @@ async function sessionResponse(userId: string) {
         name: membership.organization.name,
         plan: membership.organization.plan,
         calendarToken: membership.organization.calendarToken,
+        inboundToken: membership.organization.inboundToken,
       },
       role: membership.role,
     },
