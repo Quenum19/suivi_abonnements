@@ -75,6 +75,21 @@ export interface AdminOrg {
   createdAt: string;
 }
 
+export interface TeamMember {
+  userId: string;
+  email: string;
+  name: string | null;
+  role: 'owner' | 'admin' | 'member';
+  lastLoginAt: string | null;
+  isSelf: boolean;
+}
+
+export interface GrowthPoint {
+  month: string;
+  orgs: number;
+  users: number;
+}
+
 export interface AdminUser {
   id: string;
   email: string;

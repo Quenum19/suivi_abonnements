@@ -10,6 +10,7 @@ import { InsightsDrawer } from './components/InsightsDrawer';
 import { PasteInvoiceModal } from './components/PasteInvoiceModal';
 import { PlanModal } from './components/PlanModal';
 import { SettingsModal } from './components/SettingsModal';
+import { TeamModal } from './components/TeamModal';
 import { AdminDashboard } from './components/AdminDashboard';
 import { applyBranding } from './lib/branding';
 
@@ -31,6 +32,7 @@ export default function App() {
   const [pasteOpen, setPasteOpen] = useState(false);
   const [planOpen, setPlanOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [teamOpen, setTeamOpen] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
 
   const [config, setConfig] = useState<ReminderConfig | null>(null);
@@ -208,6 +210,13 @@ export default function App() {
             </button>
           )}
           <button
+            onClick={() => setTeamOpen(true)}
+            title="Équipe & compte"
+            className="rounded-xl border border-line bg-card px-3 py-3 text-sm text-muted transition hover:border-muted hover:text-ink"
+          >
+            👥
+          </button>
+          <button
             onClick={() => setSettingsOpen(true)}
             title="Personnalisation"
             className="rounded-xl border border-line bg-card px-3 py-3 text-sm text-muted transition hover:border-muted hover:text-ink"
@@ -361,6 +370,13 @@ export default function App() {
         onClose={() => setSettingsOpen(false)}
         onToast={showToast}
         onSaved={() => api.me().then(setSession).catch(() => undefined)}
+      />
+
+      <TeamModal
+        open={teamOpen}
+        session={session}
+        onClose={() => setTeamOpen(false)}
+        onToast={showToast}
       />
 
       {adminOpen && <AdminDashboard onClose={() => setAdminOpen(false)} onToast={showToast} />}

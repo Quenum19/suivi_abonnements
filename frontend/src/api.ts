@@ -3,6 +3,7 @@ import type {
   AdminOverview,
   AdminUser,
   BillingStatus,
+  GrowthPoint,
   Insights,
   ParsedInvoice,
   PlanCatalog,
@@ -11,6 +12,7 @@ import type {
   Session,
   Subscription,
   SubscriptionInput,
+  TeamMember,
 } from './types';
 
 const BASE = (import.meta.env.VITE_API_BASE ?? '').replace(/\/$/, '');
@@ -95,8 +97,28 @@ export const api = {
       { method: 'PUT', body: JSON.stringify(input) },
     ),
 
+  // ── Équipe ──
+  team: () => request<TeamMember[]>('/team'),
+  teamInvite: (email: string, role: 'admin' | 'member') =>
+    request<{ email: string; role: string; temporaryPassword: string | null; existingAccount: boolean }>(
+      '/team/invite',
+      { method: 'POST', body: JSON.stringify({ email, role }) },
+    ),
+  teamSetRole: (userId: string, role: 'admin' | 'member') =>
+    request<{ userId: string; role: string }>(`/team/${userId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ role }),
+    }),
+  teamRemove: (userId: string) => request<void>(`/team/${userId}`, { method: 'DELETE' }),
+  changePassword: (currentPassword: string, newPassword: string) =>
+    request<{ ok: boolean }>('/auth/password', {
+      method: 'POST',
+      body: JSON.stringify({ currentPassword, newPassword }),
+    }),
+
   // ── Super-admin ──
   adminOverview: () => request<AdminOverview>('/admin/overview'),
+  adminGrowth: () => request<GrowthPoint[]>('/admin/growth'),
   adminOrgs: (sort = 'subs') => request<AdminOrg[]>(`/admin/organizations?sort=${sort}`),
   adminUsers: (sort = 'logins') => request<AdminUser[]>(`/admin/users?sort=${sort}`),
   adminPatchOrg: (id: string, input: { plan?: string; status?: string }) =>

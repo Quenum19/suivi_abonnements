@@ -52,6 +52,29 @@ adminRouter.get(
   }),
 );
 
+// GET /api/admin/growth — inscriptions des 6 derniers mois (séries temporelles).
+adminRouter.get(
+  '/growth',
+  asyncHandler(async (_req, res) => {
+    const now = new Date();
+    const months: { month: string; orgs: number; users: number }[] = [];
+    const orgsAll = await prisma.organization.findMany({ select: { createdAt: true } });
+    const usersAll = await prisma.user.findMany({ select: { createdAt: true } });
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const inMonth = (dt: Date) =>
+        dt.getFullYear() === d.getFullYear() && dt.getMonth() === d.getMonth();
+      months.push({
+        month: key,
+        orgs: orgsAll.filter((o) => inMonth(o.createdAt)).length,
+        users: usersAll.filter((u) => inMonth(u.createdAt)).length,
+      });
+    }
+    res.json({ data: months });
+  }),
+);
+
 // GET /api/admin/organizations?sort=subs|reminders|recent — clients (entreprises).
 adminRouter.get(
   '/organizations',

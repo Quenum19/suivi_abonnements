@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { AdminOrg, AdminOverview, AdminUser } from '../types';
+import type { AdminOrg, AdminOverview, AdminUser, GrowthPoint } from '../types';
 import { api } from '../api';
 
 function fmtDate(iso: string | null) {
@@ -13,12 +13,14 @@ export function AdminDashboard({ onClose, onToast }: { onClose: () => void; onTo
   const [ov, setOv] = useState<AdminOverview | null>(null);
   const [orgs, setOrgs] = useState<AdminOrg[]>([]);
   const [users, setUsers] = useState<AdminUser[]>([]);
+  const [growth, setGrowth] = useState<GrowthPoint[]>([]);
   const [orgSort, setOrgSort] = useState('subs');
 
   const reload = useCallback(() => {
     api.adminOverview().then(setOv).catch((e) => onToast(e.message));
     api.adminOrgs(orgSort).then(setOrgs).catch((e) => onToast(e.message));
     api.adminUsers('logins').then(setUsers).catch(() => undefined);
+    api.adminGrowth().then(setGrowth).catch(() => undefined);
   }, [orgSort, onToast]);
 
   useEffect(() => reload(), [reload]);
@@ -56,6 +58,30 @@ export function AdminDashboard({ onClose, onToast }: { onClose: () => void; onTo
             <Stat label="Utilisateurs" value={ov.totals.users} sub={`${ov.activity.activeUsers7d} actifs / 7j`} />
             <Stat label="Abonnements suivis" value={ov.totals.subscriptions} sub={`${ov.totals.remindersSent} rappels envoyés`} />
             <Stat label="MRR estimé" value={`${ov.mrrEur} €`} sub={`${ov.byPlan.pro || 0} Pro · ${ov.byPlan.team || 0} Team`} />
+          </div>
+        )}
+
+        {/* Croissance (inscriptions / 6 mois) */}
+        {growth.length > 0 && (
+          <div className="mt-4 rounded-2xl border border-line bg-card p-4">
+            <div className="mb-3 text-[12px] font-semibold uppercase tracking-wide text-muted">
+              Nouvelles entreprises (6 derniers mois)
+            </div>
+            <div className="flex items-end gap-3" style={{ height: 90 }}>
+              {growth.map((g) => {
+                const max = Math.max(1, ...growth.map((x) => x.orgs));
+                return (
+                  <div key={g.month} className="flex flex-1 flex-col items-center justify-end gap-1">
+                    <div className="text-[11px] font-semibold text-ink">{g.orgs || ''}</div>
+                    <div
+                      className="w-full rounded-t bg-brand"
+                      style={{ height: `${(g.orgs / max) * 60}px`, minHeight: g.orgs ? 4 : 0 }}
+                    />
+                    <div className="text-[10px] text-muted">{g.month.slice(5)}</div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
 

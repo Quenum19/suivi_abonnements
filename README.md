@@ -74,10 +74,20 @@ Docker fait tourner l'API, le cron et le frontend.
    (inerte sans clé) et **activation manuelle Mobile Money/virement**
    (`/api/billing/*`).
 
+6. 🎨 **Marque blanche** — chaque entreprise choisit son **logo** et sa **couleur**
+   (variables CSS dynamiques) · `PUT /api/organization`.
+7. 👥 **Équipe** — invitations multi-utilisateurs avec **rôles** (owner/admin/member),
+   quota de membres selon le plan, changement de mot de passe (`/api/team`,
+   `/api/auth/password`).
+8. ★ **Espace super-admin** (`SUPERADMIN_EMAILS`) — vue d'ensemble (orgs, users,
+   abos, rappels, **MRR estimé**, activité), **graphe de croissance**, classement
+   des clients, **changement de plan**, **suspension**, export CSV (`/api/admin/*`).
+
 > SQLite par défaut ; **PostgreSQL** = changer `provider` + `DATABASE_URL`
 > (pour la prod, ajouter la Row-Level Security par `organizationId`).
 >
-> **Compte de démo** créé par le seed : `demo@local.test` / `password123`.
+> **Compte de démo** créé par le seed : `demo@local.test` / `password123`
+> (défini super-admin via `SUPERADMIN_EMAILS` en dev).
 
 ---
 

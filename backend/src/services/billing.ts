@@ -50,6 +50,20 @@ export async function assertWithinQuota(organizationId: string): Promise<void> {
   }
 }
 
+/** Bloque l'ajout d'un membre au-delà du quota du plan. */
+export async function assertWithinMemberQuota(organizationId: string): Promise<void> {
+  const org = await prisma.organization.findUnique({ where: { id: organizationId } });
+  const def = planOf(org?.plan ?? 'free');
+  if (def.maxMembers === Infinity) return;
+  const count = await prisma.membership.count({ where: { organizationId } });
+  if (count >= def.maxMembers) {
+    throw new HttpError(
+      402,
+      `Limite du plan ${def.label} atteinte (${def.maxMembers} membre(s)). Passe à un plan supérieur pour inviter plus de personnes.`,
+    );
+  }
+}
+
 /** Filtre les canaux selon le plan (le gating tarifaire). */
 export function allowedChannelsForPlan(plan: string, channels: Channel[]): Channel[] {
   const def = planOf(plan);

@@ -128,3 +128,25 @@ authRouter.get(
     res.json({ data: body });
   }),
 );
+
+// POST /api/auth/password — changement de mot de passe (session courante).
+const passwordSchema = z.object({
+  currentPassword: z.string().min(1),
+  newPassword: z.string().min(8, 'Nouveau mot de passe : 8 caractères minimum'),
+});
+authRouter.post(
+  '/password',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    const { currentPassword, newPassword } = passwordSchema.parse(req.body);
+    const user = await prisma.user.findUnique({ where: { id: req.auth!.userId } });
+    if (!user || !(await verifyPassword(currentPassword, user.passwordHash))) {
+      throw new HttpError(401, 'Mot de passe actuel incorrect.');
+    }
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { passwordHash: await hashPassword(newPassword) },
+    });
+    res.json({ data: { ok: true } });
+  }),
+);
