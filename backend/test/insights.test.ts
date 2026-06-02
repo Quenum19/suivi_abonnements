@@ -41,6 +41,27 @@ describe('computeInsights', () => {
     expect(r.potentialAnnualSavings.EUR).toBeCloseTo(150, 5);
   });
 
+  it('consolide les coûts dans la devise de référence via les taux', () => {
+    const subs: InsightInput[] = [
+      { ...base, id: '1', name: 'A', amount: 100, currency: 'EUR', frequency: 'yearly', status: 'active' },
+      { ...base, id: '2', name: 'B', amount: 120000, currency: 'XOF', frequency: 'yearly', status: 'active' },
+    ];
+    const r = computeInsights(subs, { baseCurrency: 'XOF', rates: { EUR: 655.96 } });
+    expect(r.baseCurrency).toBe('XOF');
+    // 100 EUR * 655.96 + 120000 XOF = 185596
+    expect(r.consolidated?.yearly).toBeCloseTo(185596, 0);
+    expect(r.unconvertible).toBe(0);
+  });
+
+  it('compte les non convertibles quand un taux manque', () => {
+    const subs: InsightInput[] = [
+      { ...base, id: '1', name: 'A', amount: 10, currency: 'USD', frequency: 'monthly', status: 'active' },
+    ];
+    const r = computeInsights(subs, { baseCurrency: 'XOF', rates: {} });
+    expect(r.unconvertible).toBe(1);
+    expect(r.consolidated?.yearly).toBe(0);
+  });
+
   it('exclut les annulés des totaux', () => {
     const subs: InsightInput[] = [
       { ...base, id: '1', name: 'Z', amount: 1200, currency: 'EUR', frequency: 'yearly', status: 'cancelled' },

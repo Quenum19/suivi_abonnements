@@ -24,6 +24,9 @@ const updateSchema = z.object({
   name: z.string().trim().min(1).max(120).optional(),
   brandColor: hexColor.optional(),
   logoUrl: logo.optional(),
+  baseCurrency: z.string().trim().max(8).nullable().optional(),
+  // { "EUR": 655.96, "USD": 600 } : valeur de 1 unité en devise de référence.
+  exchangeRates: z.record(z.number().positive()).nullable().optional(),
 });
 
 // PUT /api/organization — paramètres + personnalisation (owner/admin).
@@ -38,6 +41,10 @@ organizationRouter.put(
     if (input.name !== undefined) data.name = input.name;
     if (input.brandColor !== undefined) data.brandColor = input.brandColor || null;
     if (input.logoUrl !== undefined) data.logoUrl = input.logoUrl || null;
+    if (input.baseCurrency !== undefined) data.baseCurrency = input.baseCurrency || null;
+    if (input.exchangeRates !== undefined) {
+      data.exchangeRates = input.exchangeRates ? JSON.stringify(input.exchangeRates) : null;
+    }
 
     const org = await prisma.organization.update({
       where: { id: req.auth!.organizationId },
@@ -50,6 +57,8 @@ organizationRouter.put(
         plan: org.plan,
         brandColor: org.brandColor,
         logoUrl: org.logoUrl,
+        baseCurrency: org.baseCurrency,
+        exchangeRates: org.exchangeRates,
       },
     });
   }),

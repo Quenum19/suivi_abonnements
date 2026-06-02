@@ -49,8 +49,18 @@ export interface Session {
     logoUrl: string | null;
     brandColor: string | null;
     status: 'active' | 'suspended';
+    baseCurrency: string | null;
+    exchangeRates: string | null;
   };
   role: string;
+}
+
+export interface AppNotification {
+  id: string;
+  type: 'expiry' | 'unused' | 'quota';
+  severity: 'urgent' | 'soon' | 'info';
+  title: string;
+  subtitle: string;
 }
 
 export interface AdminOverview {
@@ -145,6 +155,9 @@ export interface Insights {
     annualSaving: number;
   }[];
   upcomingExpensive: { id: string; name: string; daysLeft: number; amount: number; currency: string }[];
+  baseCurrency: string | null;
+  consolidated: { monthly: number; yearly: number; savings: number } | null;
+  unconvertible: number;
 }
 
 export interface ReminderConfig {

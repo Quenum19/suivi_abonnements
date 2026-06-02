@@ -1,6 +1,19 @@
 import { useRef, useState } from 'react';
 import type { Session } from '../types';
 import { api } from '../api';
+import { SUPPORTED_CURRENCIES } from '../lib/currency';
+
+function parseRatesJson(json: string | null): Record<string, string> {
+  if (!json) return {};
+  try {
+    const o = JSON.parse(json) as Record<string, number>;
+    const out: Record<string, string> = {};
+    for (const [k, v] of Object.entries(o)) out[k] = String(v);
+    return out;
+  } catch {
+    return {};
+  }
+}
 
 interface Props {
   open: boolean;
@@ -14,6 +27,10 @@ export function SettingsModal({ open, session, onClose, onToast, onSaved }: Prop
   const [name, setName] = useState(session.organization.name);
   const [color, setColor] = useState(session.organization.brandColor || '#1F4D46');
   const [logo, setLogo] = useState<string | null>(session.organization.logoUrl);
+  const [baseCurrency, setBaseCurrency] = useState(session.organization.baseCurrency || '');
+  const [rates, setRates] = useState<Record<string, string>>(
+    parseRatesJson(session.organization.exchangeRates),
+  );
   const [busy, setBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -34,7 +51,23 @@ export function SettingsModal({ open, session, onClose, onToast, onSaved }: Prop
   async function save() {
     setBusy(true);
     try {
-      await api.updateOrganization({ name: name.trim() || undefined, brandColor: color, logoUrl: logo });
+      // Construit la table des taux (uniquement les devises ≠ référence).
+      let exchangeRates: Record<string, number> | null = null;
+      if (baseCurrency) {
+        exchangeRates = {};
+        for (const cur of SUPPORTED_CURRENCIES) {
+          if (cur === baseCurrency) continue;
+          const v = Number((rates[cur] || '').replace(',', '.'));
+          if (Number.isFinite(v) && v > 0) exchangeRates[cur] = v;
+        }
+      }
+      await api.updateOrganization({
+        name: name.trim() || undefined,
+        brandColor: color,
+        logoUrl: logo,
+        baseCurrency: baseCurrency || null,
+        exchangeRates,
+      });
       onToast('Personnalisation enregistrée.');
       onSaved();
       onClose();
@@ -106,6 +139,46 @@ export function SettingsModal({ open, session, onClose, onToast, onSaved }: Prop
               Badge
             </span>
           </div>
+        </div>
+
+        {/* Consolidation multi-devises */}
+        <div className="mt-4 rounded-xl border border-line bg-paper p-3">
+          <div className="mb-2 text-[12.5px] font-semibold uppercase tracking-wide text-muted">
+            Devise de référence (consolidation)
+          </div>
+          <select
+            value={baseCurrency}
+            onChange={(e) => setBaseCurrency(e.target.value)}
+            className={inputCls}
+          >
+            <option value="">— Aucune (afficher par devise)</option>
+            {SUPPORTED_CURRENCIES.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+          {baseCurrency && (
+            <div className="mt-2">
+              <div className="mb-1 text-[12px] text-muted">
+                Taux : valeur de 1 unité en {baseCurrency}
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {SUPPORTED_CURRENCIES.filter((c) => c !== baseCurrency).map((c) => (
+                  <div key={c} className="flex items-center gap-2">
+                    <span className="w-10 text-sm font-semibold">{c}</span>
+                    <input
+                      value={rates[c] ?? ''}
+                      onChange={(e) => setRates((r) => ({ ...r, [c]: e.target.value }))}
+                      placeholder="ex. 655.96"
+                      inputMode="decimal"
+                      className="w-full rounded-lg border border-line bg-card px-2 py-1.5 text-sm outline-none focus:border-brand"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="mt-5 flex gap-2.5">

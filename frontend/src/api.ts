@@ -2,6 +2,7 @@ import type {
   AdminOrg,
   AdminOverview,
   AdminUser,
+  AppNotification,
   BillingStatus,
   GrowthPoint,
   Insights,
@@ -91,11 +92,19 @@ export const api = {
       body: JSON.stringify({ items, replace }),
     }),
 
-  updateOrganization: (input: { name?: string; brandColor?: string | null; logoUrl?: string | null }) =>
+  updateOrganization: (input: {
+    name?: string;
+    brandColor?: string | null;
+    logoUrl?: string | null;
+    baseCurrency?: string | null;
+    exchangeRates?: Record<string, number> | null;
+  }) =>
     request<{ id: string; name: string; plan: string; brandColor: string | null; logoUrl: string | null }>(
       '/organization',
       { method: 'PUT', body: JSON.stringify(input) },
     ),
+
+  notifications: () => request<{ count: number; items: AppNotification[] }>('/notifications'),
 
   // ── Équipe ──
   team: () => request<TeamMember[]>('/team'),

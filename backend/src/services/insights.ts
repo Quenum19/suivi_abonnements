@@ -1,4 +1,5 @@
 import { annualCost, monthlyCost } from '../lib/cost.js';
+import { convert, type ExchangeRates } from '../lib/currency.js';
 import { daysLeft } from '../lib/dates.js';
 
 /** Forme minimale nécessaire au calcul (testable sans la base). */
@@ -41,6 +42,16 @@ export interface Insights {
   duplicates: DuplicateGroup[];
   cutCandidates: CutCandidate[];
   upcomingExpensive: { id: string; name: string; daysLeft: number; amount: number; currency: string }[];
+  // Consolidation dans la devise de référence (si configurée).
+  baseCurrency: string | null;
+  consolidated: { monthly: number; yearly: number; savings: number } | null;
+  unconvertible: number; // abonnements dont la devise n'a pas de taux
+}
+
+export interface InsightOptions {
+  now?: Date;
+  baseCurrency?: string | null;
+  rates?: ExchangeRates;
 }
 
 const norm = (s: string) =>
@@ -58,7 +69,10 @@ const DEFAULT_CUR = 'EUR';
  * (même nom normalisé), les abonnements inutilisés, et estime les économies
  * potentielles. Coûts jamais additionnés entre devises différentes.
  */
-export function computeInsights(subs: InsightInput[], now: Date = new Date()): Insights {
+export function computeInsights(subs: InsightInput[], opts: InsightOptions = {}): Insights {
+  const now = opts.now ?? new Date();
+  const baseCurrency = opts.baseCurrency ? opts.baseCurrency.toUpperCase() : null;
+  const rates = opts.rates ?? {};
   const counts = { total: subs.length, active: 0, unused: 0, cancelled: 0 };
   const totalsByCurrency: Record<string, CurrencyTotals> = {};
   const potentialAnnualSavings: Record<string, number> = {};
@@ -132,6 +146,33 @@ export function computeInsights(subs: InsightInput[], now: Date = new Date()): I
     }
   }
 
+  // Consolidation dans la devise de référence.
+  let consolidated: Insights['consolidated'] = null;
+  let unconvertible = 0;
+  if (baseCurrency) {
+    let monthly = 0;
+    let yearly = 0;
+    for (const [cur, t] of Object.entries(totalsByCurrency)) {
+      const m = convert(t.monthly, cur, baseCurrency, rates);
+      const y = convert(t.yearly, cur, baseCurrency, rates);
+      if (m === null || y === null) unconvertible += t.count;
+      else {
+        monthly += m;
+        yearly += y;
+      }
+    }
+    let savings = 0;
+    for (const [cur, v] of Object.entries(potentialAnnualSavings)) {
+      const c = convert(v, cur, baseCurrency, rates);
+      if (c !== null) savings += c;
+    }
+    consolidated = {
+      monthly: Math.round(monthly * 100) / 100,
+      yearly: Math.round(yearly * 100) / 100,
+      savings: Math.round(savings * 100) / 100,
+    };
+  }
+
   return {
     counts,
     totalsByCurrency,
@@ -140,5 +181,8 @@ export function computeInsights(subs: InsightInput[], now: Date = new Date()): I
     duplicates,
     cutCandidates,
     upcomingExpensive,
+    baseCurrency,
+    consolidated,
+    unconvertible,
   };
 }

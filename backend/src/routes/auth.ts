@@ -58,6 +58,8 @@ async function sessionResponse(userId: string) {
         logoUrl: membership.organization.logoUrl,
         brandColor: membership.organization.brandColor,
         status: membership.organization.status,
+        baseCurrency: membership.organization.baseCurrency,
+        exchangeRates: membership.organization.exchangeRates,
       },
       role: membership.role,
     },

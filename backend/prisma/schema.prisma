@@ -39,6 +39,11 @@ model Organization {
   // Personnalisation (marque blanche) : logo (URL ou data URL) + couleur d'accent.
   logoUrl       String?
   brandColor    String?
+  // Devise de référence pour consolider les coûts (ex. "XOF").
+  baseCurrency  String?
+  // Taux de change vers la devise de référence, JSON { "EUR": 655.96, "USD": 600 }
+  // (valeur de 1 unité de la devise en devise de référence).
+  exchangeRates String?
   // État du compte : active | suspended (suspension par le super-admin).
   status        String   @default("active")
   createdAt     DateTime @default(now())

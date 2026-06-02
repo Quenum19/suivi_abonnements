@@ -82,6 +82,10 @@ Docker fait tourner l'API, le cron et le frontend.
 8. ★ **Espace super-admin** (`SUPERADMIN_EMAILS`) — vue d'ensemble (orgs, users,
    abos, rappels, **MRR estimé**, activité), **graphe de croissance**, classement
    des clients, **changement de plan**, **suspension**, export CSV (`/api/admin/*`).
+9. 💱 **Consolidation multi-devises** — devise de référence + taux éditables par
+   organisation → **coût total unique** (ex. tout en FCFA) dans la couche Économies.
+10. 🔔 **Notifications in-app** — cloche avec badge : échéances proches, abos
+    inutilisés, quota de plan atteint (`/api/notifications`).
 
 > SQLite par défaut ; **PostgreSQL** = changer `provider` + `DATABASE_URL`
 > (pour la prod, ajouter la Row-Level Security par `organizationId`).

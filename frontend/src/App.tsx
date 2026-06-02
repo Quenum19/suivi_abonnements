@@ -12,6 +12,7 @@ import { PlanModal } from './components/PlanModal';
 import { SettingsModal } from './components/SettingsModal';
 import { TeamModal } from './components/TeamModal';
 import { AdminDashboard } from './components/AdminDashboard';
+import { NotificationsBell } from './components/NotificationsBell';
 import { applyBranding } from './lib/branding';
 
 export default function App() {
@@ -34,6 +35,7 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [teamOpen, setTeamOpen] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
+  const [notifKey, setNotifKey] = useState(0);
 
   const [config, setConfig] = useState<ReminderConfig | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -51,6 +53,7 @@ export default function App() {
     try {
       const data = await api.list();
       setSubs(data);
+      setNotifKey((k) => k + 1); // rafraîchit la cloche
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erreur de chargement.');
     } finally {
@@ -209,6 +212,7 @@ export default function App() {
               ★ Admin
             </button>
           )}
+          <NotificationsBell refreshKey={notifKey} />
           <button
             onClick={() => setTeamOpen(true)}
             title="Équipe & compte"

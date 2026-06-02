@@ -71,6 +71,27 @@ export function InsightsDrawer({ open, onClose, onToast }: Props) {
                 )}
               </div>
 
+              {/* Consolidation dans la devise de référence */}
+              {data.baseCurrency && data.consolidated && (
+                <div className="mt-4 rounded-2xl border border-brand/30 bg-brand-soft p-4">
+                  <div className="text-[12.5px] font-semibold uppercase tracking-wide text-brand">
+                    Coût total consolidé ({data.baseCurrency})
+                  </div>
+                  <div className="mt-1 font-display text-2xl font-semibold text-brand">
+                    {formatAmount(data.consolidated.yearly, data.baseCurrency)}/an
+                  </div>
+                  <div className="text-[13px] text-muted">
+                    {formatAmount(data.consolidated.monthly, data.baseCurrency)}/mois ·{' '}
+                    économies possibles {formatAmount(data.consolidated.savings, data.baseCurrency)}/an
+                  </div>
+                  {data.unconvertible > 0 && (
+                    <div className="mt-1 text-[12px] text-soon">
+                      {data.unconvertible} abonnement(s) sans taux de change défini.
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Coût total */}
               <div className="mt-4">
                 <SectionTitle>Coût total suivi</SectionTitle>
