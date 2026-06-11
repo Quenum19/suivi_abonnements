@@ -3,9 +3,29 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --paper: #f7f3ec;
+    --card: #ffffff;
+    --ink: #1b1a17;
+    --muted: #6e685d;
+    --line: #e5ddcf;
+    --dot: rgba(27, 26, 23, 0.035);
+  }
+  .dark {
+    --paper: #16151a;
+    --card: #201f27;
+    --ink: #f2efe8;
+    --muted: #a39c8e;
+    --line: #34323d;
+    --dot: rgba(255, 255, 255, 0.04);
+  }
+
   body {
     @apply bg-paper text-ink font-sans min-h-screen;
-    background-image: radial-gradient(circle at 1px 1px, rgba(27, 26, 23, 0.035) 1px, transparent 0);
+    background-image: radial-gradient(circle at 1px 1px, var(--dot) 1px, transparent 0);
     background-size: 22px 22px;
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease;
   }
 }

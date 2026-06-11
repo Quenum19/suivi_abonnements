@@ -14,7 +14,9 @@ import { TeamModal } from './components/TeamModal';
 import { AdminDashboard } from './components/AdminDashboard';
 import { NotificationsBell } from './components/NotificationsBell';
 import { Menu } from './components/Menu';
+import { Onboarding } from './components/Onboarding';
 import { applyBranding } from './lib/branding';
+import { applyTheme, getInitialTheme, type Theme } from './lib/theme';
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -28,6 +30,9 @@ export default function App() {
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [lifecycleFilter, setLifecycleFilter] = useState<'all' | 'active' | 'unused' | 'cancelled'>('all');
+  const [sortBy, setSortBy] = useState<'expiry' | 'cost' | 'name'>('expiry');
+  const [theme, setTheme] = useState<Theme>(getInitialTheme());
+  const [onboardingOpen, setOnboardingOpen] = useState(false);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Subscription | null>(null);
@@ -92,6 +97,21 @@ export default function App() {
     applyBranding(session?.organization.brandColor ?? null);
   }, [session]);
 
+  // Thème clair/sombre.
+  useEffect(() => {
+    applyTheme(theme);
+  }, [theme]);
+
+  // Onboarding : une seule fois par utilisateur (hors super-admin).
+  useEffect(() => {
+    if (!session || session.user.isSuperAdmin) return;
+    const key = `subs-onboarded:${session.user.id}`;
+    if (!localStorage.getItem(key)) {
+      setOnboardingOpen(true);
+      localStorage.setItem(key, '1');
+    }
+  }, [session]);
+
   async function handleLogout() {
     await api.logout().catch(() => undefined);
     setSession(null);
@@ -109,8 +129,13 @@ export default function App() {
     );
   }, [subs, search, categoryFilter, lifecycleFilter]);
 
-  // Regroupement par catégorie, tri secondaire par jours restants croissants.
+  // Regroupement par catégorie + tri secondaire configurable.
   const grouped = useMemo(() => {
+    const cmp = (a: Subscription, b: Subscription) => {
+      if (sortBy === 'name') return a.name.localeCompare(b.name, 'fr');
+      if (sortBy === 'cost') return (b.annualCost ?? 0) - (a.annualCost ?? 0);
+      return a.daysLeft - b.daysLeft; // expiry
+    };
     const map = new Map<string, Subscription[]>();
     for (const s of filtered) {
       const arr = map.get(s.category) ?? [];
@@ -119,8 +144,8 @@ export default function App() {
     }
     return [...map.entries()]
       .sort(([a], [b]) => a.localeCompare(b, 'fr'))
-      .map(([cat, items]) => [cat, items.sort((a, b) => a.daysLeft - b.daysLeft)] as const);
-  }, [filtered]);
+      .map(([cat, items]) => [cat, items.sort(cmp)] as const);
+  }, [filtered, sortBy]);
 
   const allCategories = useMemo(
     () => [...new Set(subs.map((s) => s.category))].sort((a, b) => a.localeCompare(b, 'fr')),
@@ -199,10 +224,10 @@ export default function App() {
             <div className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-brand">
               Tableau de bord
             </div>
-            <h1 className="font-display text-[38px] font-semibold leading-none tracking-tight">
+            <h1 className="font-display text-[28px] font-semibold leading-none tracking-tight sm:text-[38px]">
               Échéances d'abonnements
             </h1>
-            <div className="mt-1.5 text-sm text-muted">
+            <div className="mt-1.5 hidden text-sm text-muted sm:block">
               Suivi des dates de renouvellement de tes comptes
             </div>
           </div>
@@ -259,7 +284,12 @@ export default function App() {
                 : []),
               { label: '👥 Équipe & membres', onClick: () => setTeamOpen(true) },
               { label: '🎨 Personnalisation', onClick: () => setSettingsOpen(true) },
-              { label: '⎋ Se déconnecter', onClick: handleLogout, divider: true },
+              {
+                label: theme === 'dark' ? '☀️ Mode clair' : '🌙 Mode sombre',
+                onClick: () => setTheme((t) => (t === 'dark' ? 'light' : 'dark')),
+                divider: true,
+              },
+              { label: '⎋ Se déconnecter', onClick: handleLogout },
             ]}
           />
         </div>
@@ -284,6 +314,16 @@ export default function App() {
               {c}
             </option>
           ))}
+        </select>
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value as 'expiry' | 'cost' | 'name')}
+          title="Trier"
+          className="rounded-xl border border-line bg-card px-3 py-2.5 text-sm outline-none focus:border-brand"
+        >
+          <option value="expiry">Tri : échéance</option>
+          <option value="cost">Tri : coût ↓</option>
+          <option value="name">Tri : nom</option>
         </select>
         <ToolbarButton onClick={() => setInsightsOpen(true)}>💡 Économies</ToolbarButton>
         <Menu
@@ -469,6 +509,19 @@ export default function App() {
         session={session}
         onClose={() => setTeamOpen(false)}
         onToast={showToast}
+      />
+
+      <Onboarding
+        open={onboardingOpen}
+        orgName={session.organization.name}
+        onClose={() => setOnboardingOpen(false)}
+        onAdd={() => {
+          setEditing(null);
+          setDraft(null);
+          setModalOpen(true);
+        }}
+        onCustomize={() => setSettingsOpen(true)}
+        onReminders={() => setHistoryOpen(true)}
       />
 
       {adminOpen && <AdminDashboard onClose={() => setAdminOpen(false)} onToast={showToast} />}

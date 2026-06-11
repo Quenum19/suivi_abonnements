@@ -5,10 +5,19 @@ import { asyncHandler } from '../lib/http.js';
 import { serializeSubscription } from '../lib/serialize.js';
 import { computeInsights } from '../services/insights.js';
 import { parseRates, formatAmount } from '../lib/currency.js';
+import { FREQUENCY_LABELS, type Frequency } from '../lib/cost.js';
+import { footers, getLogoBuffer, header, safeBrand, statCards, table } from '../lib/pdf.js';
 
 export const reportRouter = Router();
 
-// GET /api/report — rapport PDF de l'organisation (synthèse + abonnements).
+const frLabel = (f: string) => FREQUENCY_LABELS[f as Frequency] ?? f;
+const frDate = (iso: string | null) => {
+  if (!iso) return '—';
+  const [y, m, d] = iso.slice(0, 10).split('-');
+  return `${d}/${m}/${y}`;
+};
+
+// GET /api/report — rapport PDF professionnel de l'organisation.
 reportRouter.get(
   '/',
   asyncHandler(async (req, res) => {
@@ -25,57 +34,68 @@ reportRouter.get(
       rates: parseRates(org?.exchangeRates),
     });
     const now = new Date();
-    const brand = org?.brandColor || '#1F4D46';
+    const brand = safeBrand(org?.brandColor);
+    const logo = await getLogoBuffer(org?.logoUrl);
 
-    const doc = new PDFDocument({ size: 'A4', margin: 44 });
+    const doc = new PDFDocument({ size: 'A4', margin: 44, bufferPages: true });
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', 'attachment; filename="rapport-abonnements.pdf"');
     doc.pipe(res);
 
-    doc.fontSize(22).fillColor(brand).text(org?.name ?? 'Rapport');
-    doc.fontSize(11).fillColor('#6E685D').text(`Rapport d'abonnements — ${now.toISOString().slice(0, 10)}`);
-    doc.moveDown();
+    header(doc, {
+      brand,
+      title: org?.name ?? 'Rapport',
+      subtitle: `Rapport d'abonnements — ${frDate(now.toISOString())}`,
+      logo,
+    });
 
-    doc.fontSize(14).fillColor('#1B1A17').text('Synthèse');
-    doc.moveDown(0.3);
-    doc.fontSize(10).fillColor('#333333');
-    doc.text(
-      `Abonnements suivis : ${insights.counts.total}  (actifs ${insights.counts.active}, inutilisés ${insights.counts.unused}, annulés ${insights.counts.cancelled})`,
-    );
+    // Cartes de synthèse.
+    const cards: { label: string; value: string }[] = [
+      { label: 'Abonnements suivis', value: `${insights.counts.total}` },
+    ];
     if (insights.baseCurrency && insights.consolidated) {
-      doc.text(
-        `Coût total consolidé : ${formatAmount(insights.consolidated.yearly, insights.baseCurrency)}/an  ·  ${formatAmount(insights.consolidated.monthly, insights.baseCurrency)}/mois`,
-      );
-      doc.text(
-        `Économies potentielles : ${formatAmount(insights.consolidated.savings, insights.baseCurrency)}/an`,
-      );
+      cards.push({
+        label: `Coût annuel (${insights.baseCurrency})`,
+        value: formatAmount(insights.consolidated.yearly, insights.baseCurrency),
+      });
+      cards.push({
+        label: `Économies / an`,
+        value: formatAmount(insights.consolidated.savings, insights.baseCurrency),
+      });
     } else {
-      for (const [cur, t] of Object.entries(insights.totalsByCurrency)) {
-        doc.text(`Total ${cur} : ${formatAmount(t.yearly, cur)}/an`);
-      }
+      const first = Object.entries(insights.totalsByCurrency)[0];
+      if (first) cards.push({ label: `Coût annuel (${first[0]})`, value: formatAmount(first[1].yearly, first[0]) });
+      cards.push({ label: 'Actifs / inutilisés', value: `${insights.counts.active} / ${insights.counts.unused}` });
     }
-    doc.moveDown();
+    statCards(doc, cards, brand);
 
-    doc.fontSize(14).fillColor('#1B1A17').text('Abonnements');
-    doc.moveDown(0.4);
-    const rows = subs.map((s) => serializeSubscription(s, now));
-    for (const s of rows) {
-      const amount = s.amount != null ? formatAmount(s.amount, s.currency || 'EUR') : '—';
-      doc
-        .fontSize(10)
-        .fillColor('#1B1A17')
-        .text(`${s.name}`, { continued: true })
-        .fillColor('#6E685D')
-        .text(`  [${s.category}]`);
-      doc
-        .fontSize(9)
-        .fillColor('#444444')
-        .text(
-          `  Échéance ${s.expiryDate} (${s.daysLeft} j) · ${amount} · ${s.frequency}${s.autoRenew ? ' · renouvellement auto' : ''}`,
-        );
-      doc.moveDown(0.3);
-    }
+    doc.font('Helvetica-Bold').fontSize(13).fillColor('#1B1A17').text('Détail des abonnements');
+    doc.moveDown(0.5);
 
+    const rows = subs.map((s) => {
+      const v = serializeSubscription(s, now);
+      const amount = v.amount != null ? formatAmount(v.amount, v.currency || 'EUR') : '—';
+      const days = v.daysLeft < 0 ? `+${Math.abs(v.daysLeft)} j retard` : `${v.daysLeft} j`;
+      const freq = frLabel(v.frequency) + (v.autoRenew ? ' · auto' : '');
+      const status = v.lifecycle === 'unused' ? '· inutilisé' : v.lifecycle === 'cancelled' ? '· annulé' : '';
+      return [v.name + (status ? ` ${status}` : ''), v.category, frDate(v.expiryDate), days, amount, freq];
+    });
+
+    table(
+      doc,
+      [
+        { label: 'Abonnement', width: 2.4 },
+        { label: 'Catégorie', width: 2 },
+        { label: 'Échéance', width: 1.3, align: 'left' },
+        { label: 'Reste', width: 1, align: 'right' },
+        { label: 'Montant', width: 1.3, align: 'right' },
+        { label: 'Périodicité', width: 1.6 },
+      ],
+      rows,
+      brand,
+    );
+
+    footers(doc, `${org?.name ?? ''} · Suivi des abonnements`);
     doc.end();
   }),
 );

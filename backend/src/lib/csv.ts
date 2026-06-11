@@ -16,12 +16,13 @@ function escapeCell(v: unknown): string {
   return s;
 }
 
-export function toCsv(rows: Record<string, unknown>[]): string {
-  const header = CSV_COLUMNS.join(',');
-  const body = rows
-    .map((r) => CSV_COLUMNS.map((c) => escapeCell(r[c])).join(','))
-    .join('\r\n');
-  return `${header}\r\n${body}\r\n`;
+export function toCsv(
+  rows: Record<string, unknown>[],
+  columns: readonly string[] = CSV_COLUMNS,
+): string {
+  const head = columns.join(',');
+  const body = rows.map((r) => columns.map((c) => escapeCell(r[c])).join(',')).join('\r\n');
+  return `${head}\r\n${body}\r\n`;
 }
 
 /** Parse un CSV en lignes d'objets selon l'en-tête de la 1ʳᵉ ligne. */

@@ -32,8 +32,11 @@ export function Menu({ label, actions }: { label: React.ReactNode; actions: Menu
       </button>
 
       {open && (
-        <div className="absolute right-0 z-40 mt-2 w-52 overflow-hidden rounded-xl border border-line bg-card p-1 shadow-card-hover">
-          {actions.map((a, i) => {
+        <>
+          {/* Fond cliquable (mobile : feuille du bas) */}
+          <div className="fixed inset-0 z-40 bg-black/30 sm:hidden" onClick={() => setOpen(false)} />
+          <div className="fixed inset-x-0 bottom-0 z-50 max-h-[70vh] overflow-auto rounded-t-2xl border border-line bg-card p-2 shadow-card-hover sm:absolute sm:inset-x-auto sm:bottom-auto sm:right-0 sm:mt-2 sm:w-52 sm:rounded-xl sm:p-1">
+            {actions.map((a, i) => {
             const cls =
               'block w-full rounded-lg px-3 py-2 text-left text-sm text-ink transition hover:bg-paper';
             const inner = (
@@ -57,8 +60,9 @@ export function Menu({ label, actions }: { label: React.ReactNode; actions: Menu
               </>
             );
             return <div key={i}>{inner}</div>;
-          })}
-        </div>
+            })}
+          </div>
+        </>
       )}
     </div>
   );

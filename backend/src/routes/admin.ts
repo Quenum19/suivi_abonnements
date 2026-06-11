@@ -5,6 +5,7 @@ import { prisma } from '../db.js';
 import { asyncHandler, HttpError } from '../lib/http.js';
 import { PLANS, planOf, type Plan } from '../services/billing.js';
 import { toCsv } from '../lib/csv.js';
+import { footers, header, statCards, table } from '../lib/pdf.js';
 
 export const adminRouter = Router();
 
@@ -147,42 +148,73 @@ adminRouter.get(
     }));
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', 'attachment; filename="clients.csv"');
-    res.send(toCsv(rows));
+    res.send(
+      '﻿' +
+        toCsv(rows, ['name', 'ownerEmail', 'plan', 'status', 'subscriptions', 'reminders', 'members', 'createdAt']),
+    );
   }),
 );
 
-// GET /api/admin/organizations.pdf — rapport clients en PDF.
+// GET /api/admin/organizations.pdf — rapport clients en PDF professionnel.
 adminRouter.get(
   '/organizations.pdf',
   asyncHandler(async (_req, res) => {
-    const [orgs, totalUsers, totalSubs] = await Promise.all([
+    const [orgs, totalUsers] = await Promise.all([
       prisma.organization.findMany({
         include: { _count: { select: { subscriptions: true, memberships: true } } },
         orderBy: { createdAt: 'asc' },
       }),
       prisma.user.count(),
-      prisma.subscription.count(),
     ]);
     let mrr = 0;
     for (const o of orgs) mrr += PLAN_PRICE_EUR[(o.plan as Plan) in PLANS ? (o.plan as Plan) : 'free'];
 
-    const doc = new PDFDocument({ size: 'A4', margin: 44 });
+    const doc = new PDFDocument({ size: 'A4', margin: 44, bufferPages: true });
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', 'attachment; filename="rapport-clients.pdf"');
     doc.pipe(res);
 
-    doc.fontSize(22).fillColor('#1F4D46').text('Rapport plateforme');
-    doc.fontSize(11).fillColor('#6E685D').text(`${orgs.length} entreprise(s) · ${totalUsers} utilisateur(s) · ${totalSubs} abonnement(s) · MRR estimé ${mrr} €`);
-    doc.moveDown();
+    const brand = '#1F4D46';
+    const today = new Date().toISOString().slice(0, 10).split('-').reverse().join('/');
+    header(doc, { brand, title: 'Rapport plateforme', subtitle: `Clients & activité — ${today}`, logo: null });
 
-    doc.fontSize(14).fillColor('#1B1A17').text('Clients');
-    doc.moveDown(0.4);
-    for (const o of orgs) {
-      doc.fontSize(10).fillColor('#1B1A17').text(`${o.name}`, { continued: true })
-        .fillColor('#6E685D').text(`  (${o.plan}${o.status === 'suspended' ? ', suspendu' : ''})`);
-      doc.fontSize(9).fillColor('#444444').text(`  ${o._count.subscriptions} abonnement(s) · ${o._count.memberships} membre(s) · créé le ${o.createdAt.toISOString().slice(0, 10)}`);
-      doc.moveDown(0.3);
-    }
+    statCards(
+      doc,
+      [
+        { label: 'Entreprises', value: `${orgs.length}` },
+        { label: 'Utilisateurs', value: `${totalUsers}` },
+        { label: 'MRR estimé', value: `${mrr} €` },
+      ],
+      brand,
+    );
+
+    doc.font('Helvetica-Bold').fontSize(13).fillColor('#1B1A17').text('Clients');
+    doc.moveDown(0.5);
+
+    const rows = orgs.map((o) => [
+      o.name,
+      o.plan,
+      o.status === 'suspended' ? 'Suspendu' : 'Actif',
+      `${o._count.subscriptions}`,
+      `${o._count.memberships}`,
+      o.createdAt.toISOString().slice(0, 10).split('-').reverse().join('/'),
+    ]);
+
+    table(
+      doc,
+      [
+        { label: 'Entreprise', width: 2.6 },
+        { label: 'Plan', width: 1 },
+        { label: 'Statut', width: 1.2 },
+        { label: 'Abos', width: 0.8, align: 'right' },
+        { label: 'Membres', width: 1, align: 'right' },
+        { label: 'Créé le', width: 1.3 },
+      ],
+      rows,
+      brand,
+    );
+
+    footers(doc, 'Suivi des abonnements · Administration');
     doc.end();
   }),
 );
