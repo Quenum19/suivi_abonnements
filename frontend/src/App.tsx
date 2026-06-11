@@ -27,6 +27,7 @@ export default function App() {
 
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
+  const [lifecycleFilter, setLifecycleFilter] = useState<'all' | 'active' | 'unused' | 'cancelled'>('all');
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Subscription | null>(null);
@@ -103,9 +104,10 @@ export default function App() {
     return subs.filter(
       (s) =>
         (!categoryFilter || s.category === categoryFilter) &&
+        (lifecycleFilter === 'all' || s.lifecycle === lifecycleFilter) &&
         (!q || s.name.toLowerCase().includes(q) || s.category.toLowerCase().includes(q)),
     );
-  }, [subs, search, categoryFilter]);
+  }, [subs, search, categoryFilter, lifecycleFilter]);
 
   // Regroupement par catégorie, tri secondaire par jours restants croissants.
   const grouped = useMemo(() => {
@@ -206,12 +208,6 @@ export default function App() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={() => setPlanOpen(true)} className="hidden text-right sm:block">
-            <div className="text-sm font-semibold">{session.organization.name}</div>
-            <div className="text-[11px] uppercase tracking-wide text-brand underline">
-              plan {session.organization.plan}
-            </div>
-          </button>
           {session.user.isSuperAdmin && (
             <button
               onClick={() => setAdminOpen(true)}
@@ -223,20 +219,6 @@ export default function App() {
           )}
           <NotificationsBell refreshKey={notifKey} />
           <button
-            onClick={() => setTeamOpen(true)}
-            title="Équipe & compte"
-            className="rounded-xl border border-line bg-card px-3 py-3 text-sm text-muted transition hover:border-muted hover:text-ink"
-          >
-            👥
-          </button>
-          <button
-            onClick={() => setSettingsOpen(true)}
-            title="Personnalisation"
-            className="rounded-xl border border-line bg-card px-3 py-3 text-sm text-muted transition hover:border-muted hover:text-ink"
-          >
-            ⚙
-          </button>
-          <button
             onClick={() => {
               setEditing(null);
               setDraft(null);
@@ -246,13 +228,40 @@ export default function App() {
           >
             ＋ Ajouter
           </button>
-          <button
-            onClick={handleLogout}
-            title="Se déconnecter"
-            className="rounded-xl border border-line bg-card px-3 py-3 text-sm text-muted transition hover:border-muted hover:text-ink"
-          >
-            ⎋
-          </button>
+          <Menu
+            label={
+              <span className="flex items-center gap-2">
+                {session.organization.logoUrl ? (
+                  <img
+                    src={session.organization.logoUrl}
+                    alt=""
+                    className="h-6 w-6 rounded-md bg-card object-contain"
+                  />
+                ) : (
+                  <span className="grid h-6 w-6 place-items-center rounded-md bg-brand text-[10px] font-bold text-white">
+                    {orgInitials(session.organization.name)}
+                  </span>
+                )}
+                <span className="hidden text-left sm:block">
+                  <span className="block text-[13px] font-semibold leading-tight">
+                    {session.organization.name}
+                  </span>
+                  <span className="block text-[10px] uppercase tracking-wide text-brand">
+                    plan {session.organization.plan}
+                  </span>
+                </span>
+              </span>
+            }
+            actions={[
+              { label: `💳 Mon plan (${session.organization.plan})`, onClick: () => setPlanOpen(true) },
+              ...(session.user.isSuperAdmin
+                ? [{ label: '★ Console admin', onClick: () => setAdminOpen(true) }]
+                : []),
+              { label: '👥 Équipe & membres', onClick: () => setTeamOpen(true) },
+              { label: '🎨 Personnalisation', onClick: () => setSettingsOpen(true) },
+              { label: '⎋ Se déconnecter', onClick: handleLogout, divider: true },
+            ]}
+          />
         </div>
       </header>
 
@@ -298,6 +307,35 @@ export default function App() {
         <input ref={fileRef} type="file" accept=".json,application/json" hidden onChange={handleImport} />
       </div>
 
+      {/* Filtres de statut */}
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        {(
+          [
+            ['all', 'Tous'],
+            ['active', 'Actifs'],
+            ['unused', 'Inutilisés'],
+            ['cancelled', 'Annulés'],
+          ] as const
+        ).map(([key, label]) => {
+          const count = key === 'all' ? subs.length : subs.filter((s) => s.lifecycle === key).length;
+          if (key !== 'all' && key !== 'active' && count === 0) return null;
+          const isActive = lifecycleFilter === key;
+          return (
+            <button
+              key={key}
+              onClick={() => setLifecycleFilter(key)}
+              className={`rounded-full border px-3 py-1 text-[13px] font-medium transition ${
+                isActive
+                  ? 'border-brand bg-brand text-white'
+                  : 'border-line bg-card text-muted hover:border-muted'
+              }`}
+            >
+              {label} <span className="opacity-70">{count}</span>
+            </button>
+          );
+        })}
+      </div>
+
       {config && (
         <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
           <span>
@@ -331,13 +369,33 @@ export default function App() {
       )}
 
       {loading ? (
-        <div className="py-16 text-center text-muted">Chargement…</div>
-      ) : grouped.length === 0 ? (
-        <div className="py-16 text-center text-muted">
-          {subs.length === 0
-            ? 'Aucun abonnement. Clique sur « Ajouter » pour commencer.'
-            : 'Aucun résultat pour ce filtre.'}
+        <div className="flex flex-col gap-3">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="h-24 animate-pulse rounded-2xl border border-line bg-card/60" />
+          ))}
         </div>
+      ) : grouped.length === 0 ? (
+        subs.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-line bg-card/60 px-6 py-16 text-center">
+            <div className="text-4xl">🗓️</div>
+            <h3 className="mt-3 font-display text-xl font-semibold">Aucun abonnement pour l'instant</h3>
+            <p className="mx-auto mt-1 max-w-sm text-sm text-muted">
+              Ajoute ton premier abonnement, ou importe une facture / un fichier existant.
+            </p>
+            <button
+              onClick={() => {
+                setEditing(null);
+                setDraft(null);
+                setModalOpen(true);
+              }}
+              className="mt-4 inline-flex items-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-sm font-semibold text-white transition hover:brightness-110"
+            >
+              ＋ Ajouter un abonnement
+            </button>
+          </div>
+        ) : (
+          <div className="py-16 text-center text-muted">Aucun résultat pour ce filtre.</div>
+        )
       ) : (
         grouped.map(([cat, items]) => (
           <section key={cat} className="mb-7">
@@ -435,6 +493,14 @@ export default function App() {
       )}
     </div>
   );
+}
+
+/** Initiales d'une organisation pour l'avatar par défaut. */
+function orgInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return '?';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[1][0]).toUpperCase();
 }
 
 /** "0 8 * * *" → "tous les jours à 08:00" (sinon renvoie le cron brut). */
