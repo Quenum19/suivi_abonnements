@@ -1,0 +1,60 @@
+# Render Blueprint — déploiement en un clic du suivi d'abonnements.
+# Render lit ce fichier (New → Blueprint) et crée le service Docker.
+# Les variables marquées `sync: false` sont à renseigner dans le dashboard.
+services:
+  - type: web
+    name: suivi-abonnements
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: TZ
+        value: Africa/Abidjan
+      # Base PostgreSQL (chaîne de connexion Neon, avec ?sslmode=require)
+      - key: DATABASE_URL
+        sync: false
+      # Secret de session (généré automatiquement par Render)
+      - key: JWT_SECRET
+        generateValue: true
+      - key: COOKIE_SECURE
+        value: 'true'
+      # E-mails de l'exploitant ayant accès à la console super-admin
+      - key: SUPERADMIN_EMAILS
+        sync: false
+      # Rappels
+      - key: REMINDER_THRESHOLDS
+        value: '30,7,1'
+      - key: REMINDER_CRON
+        value: '0 8 * * *'
+      - key: SCHEDULER_ENABLED
+        value: 'true'
+      # E-mail (SMTP Gmail)
+      - key: EMAIL_ENABLED
+        value: 'true'
+      - key: SMTP_HOST
+        value: smtp.gmail.com
+      - key: SMTP_PORT
+        value: '587'
+      - key: SMTP_SECURE
+        value: 'false'
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: EMAIL_FROM
+        value: Suivi abonnements <sioiniesta19@gmail.com>
+      # Destinataire global de secours (chaque org reçoit sur sa propre adresse)
+      - key: EMAIL_TO
+        sync: false
+      # Webhook n8n (désactivé par défaut)
+      - key: N8N_ENABLED
+        value: 'false'
+      - key: N8N_WEBHOOK_URL
+        sync: false
+      # Ne pas semer de données de démo en production
+      - key: RUN_SEED
+        value: 'false'

@@ -29,6 +29,10 @@ import { requireSuperAdmin } from './middleware/admin.js';
 export function createApp(): Express {
   const app = express();
 
+  // Derrière le proxy de l'hébergeur (Render/Fly/…) : nécessaire pour les
+  // cookies « secure » et la vraie IP client (rate-limit).
+  if (env.NODE_ENV === 'production') app.set('trust proxy', 1);
+
   // CSP désactivée : le SPA charge Google Fonts + styles inline. Les autres
   // en-têtes de sécurité de helmet restent actifs.
   app.use(helmet({ contentSecurityPolicy: false }));
