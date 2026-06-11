@@ -256,17 +256,7 @@ export default function App() {
           <Menu
             label={
               <span className="flex items-center gap-2">
-                {session.organization.logoUrl ? (
-                  <img
-                    src={session.organization.logoUrl}
-                    alt=""
-                    className="h-6 w-6 rounded-md bg-card object-contain"
-                  />
-                ) : (
-                  <span className="grid h-6 w-6 place-items-center rounded-md bg-brand text-[10px] font-bold text-white">
-                    {orgInitials(session.organization.name)}
-                  </span>
-                )}
+                <Avatar org={session.organization} size={6} />
                 <span className="hidden text-left sm:block">
                   <span className="block text-[13px] font-semibold leading-tight">
                     {session.organization.name}
@@ -277,19 +267,34 @@ export default function App() {
                 </span>
               </span>
             }
+            header={
+              <div className="flex items-center gap-3">
+                <Avatar org={session.organization} size={10} />
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-semibold">{session.organization.name}</div>
+                  <div className="truncate text-[12px] text-muted">{session.user.email}</div>
+                </div>
+              </div>
+            }
             actions={[
-              { label: `💳 Mon plan (${session.organization.plan})`, onClick: () => setPlanOpen(true) },
-              ...(session.user.isSuperAdmin
-                ? [{ label: '★ Console admin', onClick: () => setAdminOpen(true) }]
-                : []),
-              { label: '👥 Équipe & membres', onClick: () => setTeamOpen(true) },
-              { label: '🎨 Personnalisation', onClick: () => setSettingsOpen(true) },
               {
-                label: theme === 'dark' ? '☀️ Mode clair' : '🌙 Mode sombre',
+                icon: '💳',
+                label: 'Mon plan',
+                hint: session.organization.plan,
+                onClick: () => setPlanOpen(true),
+              },
+              ...(session.user.isSuperAdmin
+                ? [{ icon: '★', label: 'Console admin', onClick: () => setAdminOpen(true) }]
+                : []),
+              { icon: '👥', label: 'Équipe & membres', onClick: () => setTeamOpen(true) },
+              { icon: '🎨', label: 'Personnalisation', onClick: () => setSettingsOpen(true) },
+              {
+                icon: theme === 'dark' ? '☀️' : '🌙',
+                label: theme === 'dark' ? 'Mode clair' : 'Mode sombre',
                 onClick: () => setTheme((t) => (t === 'dark' ? 'light' : 'dark')),
                 divider: true,
               },
-              { label: '⎋ Se déconnecter', onClick: handleLogout },
+              { icon: '⎋', label: 'Se déconnecter', onClick: handleLogout, danger: true, divider: true },
             ]}
           />
         </div>
@@ -329,19 +334,19 @@ export default function App() {
         <Menu
           label="🔔 Rappels"
           actions={[
-            { label: '🔔 Vérifier maintenant', onClick: handleRunReminders },
-            { label: '🕘 Historique des envois', onClick: () => setHistoryOpen(true) },
+            { icon: '🔔', label: 'Vérifier maintenant', onClick: handleRunReminders },
+            { icon: '🕘', label: 'Historique des envois', onClick: () => setHistoryOpen(true) },
           ]}
         />
         <Menu
           label="⤓ Données"
           actions={[
-            { label: '📅 Calendrier (.ics)', href: api.calendarUrl(session.organization.calendarToken), target: '_blank' },
-            { label: '📄 Rapport PDF', href: api.reportPdfUrl(), target: '_blank' },
-            { label: '⬇ Exporter en JSON', href: api.exportUrl('json'), divider: true },
-            { label: '⬇ Exporter en CSV', href: api.exportUrl('csv') },
-            { label: '🧾 Importer une facture', onClick: () => setPasteOpen(true), divider: true },
-            { label: '⬆ Importer un fichier JSON', onClick: () => fileRef.current?.click() },
+            { icon: '📅', label: 'Calendrier (.ics)', href: api.calendarUrl(session.organization.calendarToken), target: '_blank' },
+            { icon: '📄', label: 'Rapport PDF', href: api.reportPdfUrl(), target: '_blank' },
+            { icon: '⬇', label: 'Exporter en JSON', href: api.exportUrl('json'), divider: true },
+            { icon: '⬇', label: 'Exporter en CSV', href: api.exportUrl('csv') },
+            { icon: '🧾', label: 'Importer une facture', onClick: () => setPasteOpen(true), divider: true },
+            { icon: '⬆', label: 'Importer un fichier JSON', onClick: () => fileRef.current?.click() },
           ]}
         />
         <input ref={fileRef} type="file" accept=".json,application/json" hidden onChange={handleImport} />
@@ -545,6 +550,20 @@ export default function App() {
         </div>
       )}
     </div>
+  );
+}
+
+/** Avatar d'organisation : logo si présent, sinon initiales sur fond de marque. */
+function Avatar({ org, size }: { org: { logoUrl: string | null; name: string }; size: number }) {
+  const dim = size >= 10 ? 'h-10 w-10 text-sm' : 'h-6 w-6 text-[10px]';
+  const rounded = size >= 10 ? 'rounded-xl' : 'rounded-md';
+  if (org.logoUrl) {
+    return <img src={org.logoUrl} alt="" className={`${dim} ${rounded} bg-card object-contain`} />;
+  }
+  return (
+    <span className={`grid ${dim} ${rounded} place-items-center bg-brand font-bold text-white`}>
+      {orgInitials(org.name)}
+    </span>
   );
 }
 

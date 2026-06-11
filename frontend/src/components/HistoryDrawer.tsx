@@ -67,18 +67,28 @@ export function HistoryDrawer({ open, config, onClose, onToast }: Props) {
                   key={c}
                   disabled={!enabled || testing === c}
                   onClick={() => test(c)}
-                  title={enabled ? `Envoyer un test ${c}` : `Canal ${c} désactivé (.env)`}
+                  title={
+                    enabled
+                      ? `Envoyer un rappel de test via ${c}`
+                      : c === 'n8n'
+                        ? 'Webhook n8n désactivé — définir N8N_ENABLED=true et N8N_WEBHOOK_URL dans la configuration'
+                        : 'E-mail désactivé — définir EMAIL_ENABLED=true et le SMTP dans la configuration'
+                  }
                   className="rounded-xl border border-line bg-paper px-3 py-2 text-sm font-medium transition hover:border-brand disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                  {testing === c ? '…' : c === 'email' ? '✉ Email' : '🔗 n8n'}
-                  {!enabled && ' (off)'}
+                  {testing === c ? '…' : c === 'email' ? '✉ Email' : '🔗 Webhook n8n'}
+                  {!enabled && ' · inactif'}
                 </button>
               );
             })}
           </div>
+          <div className="mt-2 text-xs text-muted">
+            Le <b className="font-semibold text-ink">webhook n8n</b> envoie chaque rappel vers une URL
+            que tu choisis (pour router vers WhatsApp, Slack, agenda…). « inactif » = canal non configuré.
+          </div>
           {channels.length === 0 && (
-            <div className="mt-2 text-xs text-muted">
-              Aucun canal actif. Active EMAIL_ENABLED ou N8N_ENABLED dans le .env.
+            <div className="mt-1 text-xs text-soon">
+              Aucun canal actif pour l'instant. Active l'e-mail ou le webhook n8n dans la configuration.
             </div>
           )}
         </div>
