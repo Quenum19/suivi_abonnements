@@ -78,6 +78,19 @@ export async function runReminders(opts: RunOptions = {}): Promise<RunResult> {
   });
   result.considered = subs.length;
 
+  // Destinataire e-mail = adresse du propriétaire de l'organisation (cache).
+  const ownerEmailCache = new Map<string, string | undefined>();
+  const ownerEmailFor = async (organizationId: string): Promise<string | undefined> => {
+    if (ownerEmailCache.has(organizationId)) return ownerEmailCache.get(organizationId);
+    const m = await prisma.membership.findFirst({
+      where: { organizationId, role: 'owner' },
+      include: { user: { select: { email: true } } },
+    });
+    const email = m?.user.email;
+    ownerEmailCache.set(organizationId, email);
+    return email;
+  };
+
   for (const sub of subs) {
     const dl = daysLeft(sub.expiryDate, asOf);
     if (dl < 0) continue;
@@ -144,7 +157,8 @@ export async function runReminders(opts: RunOptions = {}): Promise<RunResult> {
         }
 
         try {
-          await notify(channel, payload);
+          const emailTo = channel === 'email' ? await ownerEmailFor(sub.organizationId) : undefined;
+          await notify(channel, payload, emailTo);
           result.sent.push({
             subscriptionId: sub.id,
             name: sub.name,

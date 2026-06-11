@@ -10,6 +10,17 @@ const DEFAULT_BRAND = '#1F4D46';
 
 export const MARGIN = 44;
 
+// Espaces spéciales (insécables, étroites, joineuses) que les polices PDF
+// standard ne savent pas dessiner — sinon elles ressortent en « / » ou carré.
+const SPECIAL_SPACES = new Set([
+  0x00a0, 0x202f, 0x2009, 0x2007, 0x2008, 0x200a, 0x2002, 0x2003, 0x2060, 0xfeff,
+]);
+export function clean(s: unknown): string {
+  return Array.from(String(s ?? ''))
+    .map((c) => (SPECIAL_SPACES.has(c.codePointAt(0) ?? 0) ? ' ' : c))
+    .join('');
+}
+
 /** Valide une couleur hex, sinon renvoie la couleur de marque par défaut. */
 export function safeBrand(hex: string | null | undefined): string {
   return hex && /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(hex) ? hex : DEFAULT_BRAND;
@@ -65,8 +76,8 @@ export function header(
       textX = MARGIN;
     }
   }
-  doc.fillColor(fg).font('Helvetica-Bold').fontSize(20).text(opts.title, textX, 34, { width: W - textX - MARGIN });
-  doc.font('Helvetica').fontSize(10).fillColor(fg).opacity(0.85).text(opts.subtitle, textX, 62, { width: W - textX - MARGIN });
+  doc.fillColor(fg).font('Helvetica-Bold').fontSize(20).text(clean(opts.title), textX, 34, { width: W - textX - MARGIN });
+  doc.font('Helvetica').fontSize(10).fillColor(fg).opacity(0.85).text(clean(opts.subtitle), textX, 62, { width: W - textX - MARGIN });
   doc.opacity(1).restore();
   doc.fillColor(INK);
   doc.x = MARGIN;
@@ -74,11 +85,7 @@ export function header(
 }
 
 /** Rangée de cartes de synthèse. */
-export function statCards(
-  doc: Doc,
-  cards: { label: string; value: string }[],
-  brand: string,
-): void {
+export function statCards(doc: Doc, cards: { label: string; value: string }[], brand: string): void {
   const W = doc.page.width;
   const gap = 12;
   const usable = W - MARGIN * 2;
@@ -87,8 +94,8 @@ export function statCards(
   cards.forEach((c, i) => {
     const x = MARGIN + i * (cw + gap);
     doc.roundedRect(x, y, cw, 56, 10).fillAndStroke(PAPER, LINE);
-    doc.fillColor(MUTED).font('Helvetica-Bold').fontSize(7.5).text(c.label.toUpperCase(), x + 12, y + 11, { width: cw - 24 });
-    doc.fillColor(brand).font('Helvetica-Bold').fontSize(14).text(c.value, x + 12, y + 26, { width: cw - 24 });
+    doc.fillColor(MUTED).font('Helvetica-Bold').fontSize(7.5).text(clean(c.label).toUpperCase(), x + 12, y + 11, { width: cw - 24 });
+    doc.fillColor(brand).font('Helvetica-Bold').fontSize(14).text(clean(c.value), x + 12, y + 26, { width: cw - 24 });
   });
   doc.fillColor(INK).font('Helvetica');
   doc.y = y + 56 + 20;
@@ -97,7 +104,7 @@ export function statCards(
 
 export interface Column {
   label: string;
-  width: number; // proportion (sommée librement)
+  width: number;
   align?: 'left' | 'right';
 }
 
@@ -122,7 +129,7 @@ export function table(doc: Doc, columns: Column[], rows: string[][], brand: stri
     doc.rect(MARGIN, y, usable, rowH).fill(brand);
     doc.fillColor(headFg).font('Helvetica-Bold').fontSize(8.5);
     columns.forEach((c, i) => {
-      doc.text(c.label.toUpperCase(), xs[i] + 8, y + 7, {
+      doc.text(clean(c.label).toUpperCase(), xs[i] + 8, y + 7, {
         width: widths[i] - 16,
         align: c.align ?? 'left',
         lineBreak: false,
@@ -141,9 +148,9 @@ export function table(doc: Doc, columns: Column[], rows: string[][], brand: stri
     }
     const y = doc.y;
     if (r % 2 === 1) doc.rect(MARGIN, y, usable, rowH).fill(PAPER);
-    doc.fillColor(INK).font('Helvetica').fontSize(8.5);
+    doc.font('Helvetica').fontSize(8.5);
     columns.forEach((c, i) => {
-      doc.fillColor(i === 0 ? INK : '#444444').text(row[i] ?? '', xs[i] + 8, y + 7, {
+      doc.fillColor(i === 0 ? INK : '#444444').text(clean(row[i] ?? ''), xs[i] + 8, y + 7, {
         width: widths[i] - 16,
         align: c.align ?? 'left',
         lineBreak: false,
@@ -151,7 +158,6 @@ export function table(doc: Doc, columns: Column[], rows: string[][], brand: stri
     });
     doc.y = y + rowH;
   });
-  // Filet de fin de tableau.
   doc.moveTo(MARGIN, doc.y).lineTo(W - MARGIN, doc.y).strokeColor(LINE).stroke();
   doc.fillColor(INK);
 }
@@ -161,11 +167,13 @@ export function footers(doc: Doc, left: string): void {
   const range = doc.bufferedPageRange();
   for (let i = 0; i < range.count; i++) {
     doc.switchToPage(range.start + i);
-    const y = doc.page.height - 36;
+    // Annule la marge basse pour écrire en pied SANS provoquer de saut de page.
+    doc.page.margins.bottom = 0;
+    const y = doc.page.height - 34;
     doc.moveTo(MARGIN, y).lineTo(doc.page.width - MARGIN, y).strokeColor(LINE).stroke();
     doc.font('Helvetica').fontSize(8).fillColor(MUTED);
-    doc.text(left, MARGIN, y + 8, { width: 300, align: 'left', lineBreak: false });
-    doc.text(`Page ${i + 1} / ${range.count}`, doc.page.width - MARGIN - 120, y + 8, {
+    doc.text(clean(left), MARGIN, y + 7, { width: 320, align: 'left', lineBreak: false });
+    doc.text(`Page ${i + 1} / ${range.count}`, doc.page.width - MARGIN - 120, y + 7, {
       width: 120,
       align: 'right',
       lineBreak: false,

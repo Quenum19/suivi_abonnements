@@ -86,11 +86,12 @@ function emailHtml(p: ReminderPayload, amountTxt: string, when: string): string 
   </div>`;
 }
 
-async function sendEmail(p: ReminderPayload): Promise<void> {
+async function sendEmail(p: ReminderPayload, override?: string): Promise<void> {
   const t = getTransporter();
   if (!t) throw new Error('Canal email désactivé ou SMTP non configuré.');
-  const to = recipients();
-  if (to.length === 0) throw new Error('EMAIL_TO manquant : aucun destinataire configuré.');
+  // Destinataire = adresse propre du compte (override) sinon EMAIL_TO global.
+  const to = override ? [override] : recipients();
+  if (to.length === 0) throw new Error('Aucun destinataire e-mail (adresse du compte manquante).');
   const amountTxt = p.amount != null ? formatAmount(p.amount, p.currency ?? 'EUR') : '—';
   const when =
     p.daysLeft < 0 ? `dépassée depuis ${Math.abs(p.daysLeft)} j` : `dans ${p.daysLeft} j`;
@@ -129,9 +130,16 @@ async function sendN8n(p: ReminderPayload): Promise<void> {
   }
 }
 
-/** Envoie un rappel sur un canal donné. Lance une erreur en cas d'échec. */
-export async function notify(channel: Channel, payload: ReminderPayload): Promise<void> {
-  if (channel === 'email') return sendEmail(payload);
+/**
+ * Envoie un rappel sur un canal donné. Lance une erreur en cas d'échec.
+ * `emailTo` cible l'adresse propre de l'organisation (multi-tenant).
+ */
+export async function notify(
+  channel: Channel,
+  payload: ReminderPayload,
+  emailTo?: string,
+): Promise<void> {
+  if (channel === 'email') return sendEmail(payload, emailTo);
   return sendN8n(payload);
 }
 

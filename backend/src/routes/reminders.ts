@@ -83,8 +83,10 @@ remindersRouter.post(
       );
     }
     try {
-      await notify(channel as Channel, samplePayload());
-      res.json({ data: { ok: true, channel } });
+      // L'e-mail de test part vers l'adresse du compte connecté.
+      const me = await prisma.user.findUnique({ where: { id: req.auth!.userId } });
+      await notify(channel as Channel, samplePayload(), me?.email);
+      res.json({ data: { ok: true, channel, sentTo: channel === 'email' ? me?.email : undefined } });
     } catch (e) {
       throw new HttpError(502, e instanceof Error ? e.message : 'Échec de l’envoi de test.');
     }
