@@ -4,7 +4,7 @@ import { prisma } from '../db.js';
 import { asyncHandler } from '../lib/http.js';
 import { serializeSubscription } from '../lib/serialize.js';
 import { computeInsights } from '../services/insights.js';
-import { parseRates, formatAmount } from '../lib/currency.js';
+import { parseRates, formatAmount, convert } from '../lib/currency.js';
 import { FREQUENCY_LABELS, type Frequency } from '../lib/cost.js';
 import { footers, getLogoBuffer, header, safeBrand, statCards, table } from '../lib/pdf.js';
 
@@ -49,23 +49,58 @@ reportRouter.get(
       logo,
     });
 
-    // Cartes de synthèse.
+    // Total des paiements ponctuels (non récurrents), par devise.
+    const rates = parseRates(org?.exchangeRates);
+    const oneTimeByCur: Record<string, number> = {};
+    for (const s of subs) {
+      if (s.frequency === 'one_time' && s.amount != null && s.status !== 'cancelled') {
+        const cur = (s.currency || insights.baseCurrency || 'EUR').toUpperCase();
+        oneTimeByCur[cur] = (oneTimeByCur[cur] ?? 0) + s.amount;
+      }
+    }
+    const otEntries = Object.entries(oneTimeByCur);
+    let oneTimeCard: { label: string; value: string } | null = null;
+    if (otEntries.length) {
+      if (insights.baseCurrency) {
+        let sum = 0;
+        for (const [cur, amt] of otEntries) {
+          const c = convert(amt, cur, insights.baseCurrency, rates);
+          if (c !== null) sum += c;
+        }
+        oneTimeCard = { label: `Paiements ponctuels (${insights.baseCurrency})`, value: formatAmount(sum, insights.baseCurrency) };
+      } else {
+        const [cur, amt] = otEntries[0];
+        oneTimeCard = { label: `Paiements ponctuels (${cur})`, value: formatAmount(amt, cur) };
+      }
+    }
+
+    // Cartes de synthèse (« récurrent » explicite + ponctuels si présents).
     const cards: { label: string; value: string }[] = [
       { label: 'Abonnements suivis', value: `${insights.counts.total}` },
     ];
     if (insights.baseCurrency && insights.consolidated) {
       cards.push({
-        label: `Coût annuel (${insights.baseCurrency})`,
+        label: `Coût récurrent / an (${insights.baseCurrency})`,
         value: formatAmount(insights.consolidated.yearly, insights.baseCurrency),
       });
-      cards.push({
-        label: `Économies / an`,
-        value: formatAmount(insights.consolidated.savings, insights.baseCurrency),
-      });
+      cards.push(
+        oneTimeCard ?? {
+          label: 'Économies / an',
+          value: formatAmount(insights.consolidated.savings, insights.baseCurrency),
+        },
+      );
     } else {
       const first = Object.entries(insights.totalsByCurrency)[0];
-      if (first) cards.push({ label: `Coût annuel (${first[0]})`, value: formatAmount(first[1].yearly, first[0]) });
-      cards.push({ label: 'Actifs / inutilisés', value: `${insights.counts.active} / ${insights.counts.unused}` });
+      cards.push({
+        label: first ? `Coût récurrent / an (${first[0]})` : 'Coût récurrent / an',
+        value: first ? formatAmount(first[1].yearly, first[0]) : '—',
+      });
+      cards.push(
+        oneTimeCard ?? {
+          label: 'Actifs / inutilisés',
+          value: `${insights.counts.active} / ${insights.counts.unused}`,
+        },
+      );
     }
     statCards(doc, cards, brand);
 
