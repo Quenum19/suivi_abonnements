@@ -13,6 +13,7 @@ import { SettingsModal } from './components/SettingsModal';
 import { TeamModal } from './components/TeamModal';
 import { AdminDashboard } from './components/AdminDashboard';
 import { NotificationsBell } from './components/NotificationsBell';
+import { Menu } from './components/Menu';
 import { applyBranding } from './lib/branding';
 
 export default function App() {
@@ -276,30 +277,48 @@ export default function App() {
           ))}
         </select>
         <ToolbarButton onClick={() => setInsightsOpen(true)}>💡 Économies</ToolbarButton>
-        <ToolbarButton onClick={handleRunReminders}>🔔 Vérifier rappels</ToolbarButton>
-        <ToolbarButton onClick={() => setHistoryOpen(true)}>🕘 Historique</ToolbarButton>
-        <a href={api.calendarUrl(session.organization.calendarToken)} target="_blank" rel="noreferrer">
-          <ToolbarButton>📅 Calendrier (.ics)</ToolbarButton>
-        </a>
-        <a href={api.exportUrl('json')}>
-          <ToolbarButton>⬇ JSON</ToolbarButton>
-        </a>
-        <a href={api.exportUrl('csv')}>
-          <ToolbarButton>⬇ CSV</ToolbarButton>
-        </a>
-        <a href={api.reportPdfUrl()} target="_blank" rel="noreferrer">
-          <ToolbarButton>📄 PDF</ToolbarButton>
-        </a>
-        <ToolbarButton onClick={() => setPasteOpen(true)}>🧾 Facture</ToolbarButton>
-        <ToolbarButton onClick={() => fileRef.current?.click()}>⬆ Importer</ToolbarButton>
+        <Menu
+          label="🔔 Rappels"
+          actions={[
+            { label: '🔔 Vérifier maintenant', onClick: handleRunReminders },
+            { label: '🕘 Historique des envois', onClick: () => setHistoryOpen(true) },
+          ]}
+        />
+        <Menu
+          label="⤓ Données"
+          actions={[
+            { label: '📅 Calendrier (.ics)', href: api.calendarUrl(session.organization.calendarToken), target: '_blank' },
+            { label: '📄 Rapport PDF', href: api.reportPdfUrl(), target: '_blank' },
+            { label: '⬇ Exporter en JSON', href: api.exportUrl('json'), divider: true },
+            { label: '⬇ Exporter en CSV', href: api.exportUrl('csv') },
+            { label: '🧾 Importer une facture', onClick: () => setPasteOpen(true), divider: true },
+            { label: '⬆ Importer un fichier JSON', onClick: () => fileRef.current?.click() },
+          ]}
+        />
         <input ref={fileRef} type="file" accept=".json,application/json" hidden onChange={handleImport} />
       </div>
 
       {config && (
-        <div className="mt-2 text-xs text-muted">
-          Rappels : seuils {config.thresholds.join(', ')} j ·{' '}
-          {config.channels.length ? `canaux ${config.channels.join(' + ')}` : 'aucun canal actif'} ·{' '}
-          {config.schedulerEnabled ? `planifié (${config.cron}, ${config.timezone})` : 'planificateur off'}
+        <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
+          <span>
+            Rappels à <b className="font-semibold text-ink">{config.thresholds.join(', ')} j</b> avant l'échéance
+          </span>
+          <span aria-hidden>·</span>
+          <span>
+            {config.channels.length ? (
+              <>
+                par <b className="font-semibold text-ink">{config.channels.join(' + ')}</b>
+              </>
+            ) : (
+              <span className="text-soon">aucun canal actif</span>
+            )}
+          </span>
+          <span aria-hidden>·</span>
+          <span>
+            {config.schedulerEnabled
+              ? `automatique ${humanCron(config.cron)} (${config.timezone})`
+              : 'planificateur désactivé'}
+          </span>
         </div>
       )}
 
@@ -416,6 +435,19 @@ export default function App() {
       )}
     </div>
   );
+}
+
+/** "0 8 * * *" → "tous les jours à 08:00" (sinon renvoie le cron brut). */
+function humanCron(cron: string): string {
+  const p = cron.trim().split(/\s+/);
+  if (p.length === 5 && p[2] === '*' && p[3] === '*' && p[4] === '*') {
+    const m = Number(p[0]);
+    const h = Number(p[1]);
+    if (Number.isFinite(m) && Number.isFinite(h)) {
+      return `tous les jours à ${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+    }
+  }
+  return cron;
 }
 
 function ToolbarButton({
