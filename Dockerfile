@@ -31,6 +31,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-cert
 # Dépendances de prod (prisma CLI inclus pour `db push` au démarrage)
 COPY package.json package-lock.json* ./
 COPY backend/package.json ./backend/
+# frontend/package.json requis pour résoudre le workspace npm
+COPY frontend/package.json ./frontend/
 # Le schéma (basculé en postgresql) doit être présent avant la génération du client
 COPY --from=build /app/backend/prisma ./backend/prisma
 RUN npm install --omit=dev -w backend \

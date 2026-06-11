@@ -1,0 +1,10 @@
+# Forcer LF pour les fichiers exécutés sous Linux (Docker/Render),
+# sinon les fins de ligne CRLF de Windows cassent les scripts.
+*.sh text eol=lf
+docker-entrypoint.sh text eol=lf
+Dockerfile text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+
+# Normalisation par défaut
+* text=auto
