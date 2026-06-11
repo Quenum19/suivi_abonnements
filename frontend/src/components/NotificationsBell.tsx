@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { AppNotification } from '../types';
 import { api } from '../api';
 
@@ -8,19 +8,42 @@ const DOT: Record<AppNotification['severity'], string> = {
   info: 'bg-brand',
 };
 
+const SEEN_KEY = 'subs-notif-seen';
+// Signature stable : ne re-notifie que si la gravité change (pas chaque jour).
+const sig = (n: AppNotification) => `${n.id}:${n.severity}`;
+
+function loadSeen(): Set<string> {
+  try {
+    return new Set(JSON.parse(localStorage.getItem(SEEN_KEY) || '[]'));
+  } catch {
+    return new Set();
+  }
+}
+function saveSeen(s: Set<string>) {
+  localStorage.setItem(SEEN_KEY, JSON.stringify([...s]));
+}
+
 export function NotificationsBell({ refreshKey }: { refreshKey: number }) {
   const [items, setItems] = useState<AppNotification[]>([]);
+  const [unseen, setUnseen] = useState(0);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  function load() {
+  const load = useCallback(() => {
     api
       .notifications()
-      .then((d) => setItems(d.items))
+      .then((d) => {
+        setItems(d.items);
+        // Élague les « vus » aux alertes encore présentes (borne la taille).
+        const present = new Set(d.items.map(sig));
+        const seen = new Set([...loadSeen()].filter((x) => present.has(x)));
+        saveSeen(seen);
+        setUnseen(d.items.filter((n) => !seen.has(sig(n))).length);
+      })
       .catch(() => undefined);
-  }
+  }, []);
 
-  useEffect(() => load(), [refreshKey]);
+  useEffect(() => load(), [refreshKey, load]);
 
   useEffect(() => {
     function onClick(e: MouseEvent) {
@@ -30,20 +53,29 @@ export function NotificationsBell({ refreshKey }: { refreshKey: number }) {
     return () => document.removeEventListener('mousedown', onClick);
   }, []);
 
+  // Ouvrir la cloche = consulter → on marque tout comme lu, le badge disparaît.
+  function toggle() {
+    const next = !open;
+    setOpen(next);
+    if (next) {
+      const seen = loadSeen();
+      items.forEach((n) => seen.add(sig(n)));
+      saveSeen(seen);
+      setUnseen(0);
+    }
+  }
+
   return (
     <div className="relative" ref={ref}>
       <button
-        onClick={() => {
-          setOpen((o) => !o);
-          if (!open) load();
-        }}
+        onClick={toggle}
         title="Notifications"
         className="relative rounded-xl border border-line bg-card px-3 py-3 text-sm text-muted transition hover:border-muted hover:text-ink"
       >
         🔔
-        {items.length > 0 && (
+        {unseen > 0 && (
           <span className="absolute -right-1 -top-1 grid h-5 min-w-[20px] place-items-center rounded-full bg-urgent px-1 text-[11px] font-bold text-white">
-            {items.length}
+            {unseen}
           </span>
         )}
       </button>
